@@ -1,12 +1,15 @@
 package com.alexkasko.springjdbc.beanqueries.codegen;
 
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 
 /**
  * User: alexkasko
  * Date: 12/22/12
  */
 public class TemplateParams {
+    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private final String packageName;
     private final String className;
     private final Collection<String> selects;
@@ -33,6 +36,10 @@ public class TemplateParams {
 
     public Collection<String> getUpdates() {
         return updates;
+    }
+
+    public String getCurrentDate() {
+        return new SimpleDateFormat(DATE_FORMAT).format(new Date());
     }
 
     @Override

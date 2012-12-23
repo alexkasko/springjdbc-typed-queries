@@ -16,7 +16,6 @@
     <modules>
         <module>bean-queries-common</module>
         <module>bean-queries-maven-plugin</module>
-        <module>bean-queries-ant-task</module>
         <module>bean-queries-codegen</module>
     </modules>
 

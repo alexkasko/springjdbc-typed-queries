@@ -97,6 +97,12 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      */
     private String updateRegexParam;
     /**
+     * Whether to check SQL file date and skip code generation
+     *
+     * @parameter expression="${sbqcodegen.checkSqlFileDate}"
+     */
+     private boolean checkSqlFileDate = true;
+    /**
      * @parameter expression="${project.basedir}"
      * @required
      * @readonly
@@ -123,7 +129,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             Map<String, String> queries = new SqlQueriesParser(queryNameRegex, commentRegex, bodyLineRegex).parse(is);
             // create and check file
             File outFile = new File(baseDirectory, "src/main/java/" + packageName.replace(".", "/") + "/" + className + ".java");
-            if(outFile.lastModified() >= queriesFile.lastModified()) {
+            if(checkSqlFileDate && outFile.lastModified() >= queriesFile.lastModified()) {
                 getLog().info("Bean queries file: [" + outFile.getAbsolutePath() + "] is up to date, skipping code generation");
                 return;
             }
