@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashSet;
@@ -24,7 +25,7 @@ import static java.util.Collections.unmodifiableSet;
  * Do not change this file, change source SQL file instead.
  * To regenerate this file run {@code mvn bean-queries:codegen} from this maven module directory.
  */
-class ${className} {
+${modifier}class ${className} {
     private static final Set<String> GENERATED_QUERIES_NAMES;
 
     private final Map<String, String> queries;
@@ -35,11 +36,11 @@ class ${className} {
     static {
         // fill names array
         List<String> genNamesList = new ArrayList<String>();
-[#list selects as methodName]
-        genNamesList.add("${methodName}");
+[#list selects as query]
+        genNamesList.add("${query.name}");
 [/#list]
-[#list updates as methodName]
-        genNamesList.add("${methodName}");
+[#list updates as query]
+        genNamesList.add("${query.name}");
 [/#list]
         // check duplicate names
         Set<String> getNamesSet = new LinkedHashSet<String>(genNamesList.size());
@@ -58,7 +59,7 @@ class ${className} {
      * @param jt jdbc template
      * @throws BeanQueriesException if provided queries names are not consistent with generated ones
      */
-    ${className}(Map<String, String> queries, IterableNamedParameterJdbcTemplate jt) {
+    ${modifier}${className}(Map<String, String> queries, IterableNamedParameterJdbcTemplate jt) {
         if(null == queries) throw new BeanQueriesException("Provided queries map is null");
         if(null == jt) throw new BeanQueriesException("Provided JdbcTemplate is null");
         if(queries.size() != GENERATED_QUERIES_NAMES.size()) throw new BeanQueriesException(
@@ -76,7 +77,7 @@ class ${className} {
      *
      * @return jdbc template
      */
-    IterableNamedParameterJdbcTemplate jt() {
+    ${modifier}IterableNamedParameterJdbcTemplate jt() {
         return this.jt;
     }
 
@@ -100,36 +101,42 @@ class ${className} {
         if(null == sql) throw new BeanQueriesException("No query found with name: [" + name + "], queries: [" + queries.keySet() + "]");
         return sql;
     }
+[#list selects as query]
 
-[#list selects as methodName]
-    // ${methodName} methods
+    // ${query.name} methods
 
-    <T> T ${methodName}Object(Object paramsBean, RowMapper<T> mapper) {
-        return ${methodName}Object(this.jt, paramsBean, mapper);
+    ${modifier}interface ${query.name?cap_first}$Params {
+[#list query.params as param]
+        ${param.type} get${param.name?cap_first}();
+[/#list]
     }
 
-    <T> T ${methodName}Object(NamedParameterJdbcOperations jt, Object paramsBean, RowMapper<T> mapper) {
-        String sql = checkAndGetSql(jt, "${methodName}", paramsBean, mapper);
+    ${modifier}<T> T ${query.name}Object(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper) {
+        return ${query.name}Object(this.jt, paramsBean, mapper);
+    }
+
+    ${modifier}<T> T ${query.name}Object(NamedParameterJdbcOperations jt, ${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper) {
+        String sql = checkAndGetSql(jt, "${query.name}", paramsBean, mapper);
         SqlParameterSource params = new BeanPropertySqlParameterSource(paramsBean);
         return jt.queryForObject(sql, params, mapper);
     }
 
-    <T> List<T> ${methodName}(Object paramsBean, RowMapper<T> mapper) {
-        return ${methodName}(this.jt, paramsBean, mapper);
+    ${modifier}<T> List<T> ${query.name}(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper) {
+        return ${query.name}(this.jt, paramsBean, mapper);
     }
 
-    <T> List<T> ${methodName}(NamedParameterJdbcOperations jt, Object paramsBean, RowMapper<T> mapper) {
-        String sql = checkAndGetSql(jt, "${methodName}", paramsBean, mapper);
+    ${modifier}<T> List<T> ${query.name}(NamedParameterJdbcOperations jt, ${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper) {
+        String sql = checkAndGetSql(jt, "${query.name}", paramsBean, mapper);
         SqlParameterSource params = new BeanPropertySqlParameterSource(paramsBean);
         return jt.query(sql, params, mapper);
     }
 
-    <T> CloseableIterator<T> ${methodName}Iter(Object paramsBean, RowMapper<T> mapper) {
-        return ${methodName}Iter(this.jt, paramsBean, mapper);
+    ${modifier}<T> CloseableIterator<T> ${query.name}Iter(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper) {
+        return ${query.name}Iter(this.jt, paramsBean, mapper);
     }
 
-    <T> CloseableIterator<T> ${methodName}Iter(IterableNamedParameterJdbcOperations jt, Object paramsBean, RowMapper<T> mapper) {
-        String sql = checkAndGetSql(jt, "${methodName}", paramsBean, mapper);
+    ${modifier}<T> CloseableIterator<T> ${query.name}Iter(IterableNamedParameterJdbcOperations jt, ${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper) {
+        String sql = checkAndGetSql(jt, "${query.name}", paramsBean, mapper);
         SqlParameterSource params = new BeanPropertySqlParameterSource(paramsBean);
         return jt.queryForIter(sql, params, mapper);
     }
@@ -146,26 +153,31 @@ class ${className} {
      * @return query sql text
      * @throws BeanQueriesException if provided arguments are null or queries are inconsistent
      */
-     private String checkAndGetSql(Object jt, String name, Object paramsBean) {
-       if(null == jt) throw new BeanQueriesException("Provided JdbcTemplate is null");
-       if(null == paramsBean) throw new BeanQueriesException("Provided params object is null");
-       String sql = queries.get(name);
-       if(null == sql) throw new BeanQueriesException("No query found with name: [" + name + "], queries: [" + queries.keySet() + "]");
-       return sql;
-     }
-
-[#list updates as methodName]
-    // ${methodName} methods
-
-    int ${methodName}(Object paramsBean) {
-        return ${methodName}(this.jt, paramsBean);
+    private String checkAndGetSql(Object jt, String name, Object paramsBean) {
+        if(null == jt) throw new BeanQueriesException("Provided JdbcTemplate is null");
+        if(null == paramsBean) throw new BeanQueriesException("Provided params object is null");
+        String sql = queries.get(name);
+        if(null == sql) throw new BeanQueriesException("No query found with name: [" + name + "], queries: [" + queries.keySet() + "]");
+        return sql;
     }
 
-    int ${methodName}(NamedParameterJdbcOperations jt, Object paramsBean) {
-        String sql = checkAndGetSql(jt, "${methodName}", paramsBean);
+[#list updates as query]
+    // ${query.name} methods
+
+    ${modifier}interface ${query.name?cap_first}$Params {
+[#list query.params as param]
+        ${param.type} get${param.name?cap_first}();
+[/#list]
+    }
+
+    ${modifier}int ${query.name}(${query.name?cap_first}$Params paramsBean) {
+        return ${query.name}(this.jt, paramsBean);
+    }
+
+    ${modifier}int ${query.name}(NamedParameterJdbcOperations jt, ${query.name?cap_first}$Params paramsBean) {
+        String sql = checkAndGetSql(jt, "${query.name}", paramsBean);
         SqlParameterSource params = new BeanPropertySqlParameterSource(paramsBean);
         return jt.update(sql, params);
     }
-
 [/#list]
 }

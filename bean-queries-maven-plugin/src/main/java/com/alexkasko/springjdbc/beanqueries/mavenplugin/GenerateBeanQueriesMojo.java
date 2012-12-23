@@ -79,6 +79,12 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      */
     private String classNameParam;
     /**
+     * Generated class modifier (public|private|empty)
+     *
+     * @parameter expression="${sbqcodegen.modifier}"
+     */
+    private String modifierParam;
+    /**
      * Template file
      *
      * @parameter expression="${sbqcodegen.freemarkerTemplate}"
@@ -120,7 +126,8 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             String commentRegex = null != commentRegexParam ? commentRegexParam : DEFAULT_COMMENT_REGEX;
             String bodyLineRegex = null != bodyLineRegexParam ? bodyLineRegexParam : DEFAULT_BODY_LINE_REGEX;
             String packageName = null != packageNameParam ? packageNameParam : getBaseName(queriesFile.getName());
-            String className = null != classNameParam ? classNameParam :  extractPackageTail(packageName) + "BeanQueries";
+            String className = null != classNameParam ? classNameParam :  extractPackageTail(packageName) + "$Queries";
+            String modifier = null != modifierParam ? modifierParam :  "";
             String template = null != templateFile ? readFileToString(templateFile, "UTF-8") : DEFAULT_FREEMARKER_TEMPLATE;
             String selectRegex = null != selectRegexParam ? selectRegexParam : DEFAULT_SELECT_REGEX;
             String updateRegex = null != updateRegexParam ? updateRegexParam : DEFAULT_UPDATE_REGEX;
@@ -136,7 +143,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             // generate file
             getLog().info("Writing class: [" + packageName + "." + className + "] to file: [" + outFile.getAbsolutePath() + "]");
             outWriter = new OutputStreamWriter(openOutputStream(outFile), "UTF-8");
-            new CodeGenerator(selectRegex, updateRegex, template).generate(packageName, className, queries, outWriter);
+            new CodeGenerator(selectRegex, updateRegex, template).generate(packageName, className, modifier, queries, outWriter);
         } catch(IOException e) {
             throw new MojoFailureException("IO error", e);
         } finally {

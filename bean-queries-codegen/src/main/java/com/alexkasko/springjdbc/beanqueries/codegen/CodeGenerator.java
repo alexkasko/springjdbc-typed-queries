@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import static freemarker.ext.beans.BeansWrapper.EXPOSE_PROPERTIES_ONLY;
 import static freemarker.template.Configuration.SQUARE_BRACKET_TAG_SYNTAX;
+import static org.springframework.jdbc.core.namedparam.NamedParamsSqlParser$Accessor.parseParamsNames;
 
 /**
  * User: alexkasko
@@ -20,7 +21,19 @@ import static freemarker.template.Configuration.SQUARE_BRACKET_TAG_SYNTAX;
  */
 public class CodeGenerator {
     private static final String DEFAULT_TEMPLATE_PATH = "/com/alexkasko/springjdbc/beanqueries/codegen/BeanQueries.ftl";
-    //    private final Pattern paramPattern = Pattern.compile("\\s*=\\s*:([a-zA-Z][a-zA-Z_$]*)");
+//    str
+    private static final String TYPE_ID_PREFIX = "$";
+    private static final Map<String, Class<?>> TYPE_ID_MAP;
+    static {
+        Map<String, Class<?>> map = new LinkedHashMap<String, Class<?>>();
+        map.put(TYPE_ID_PREFIX + 'S', String.class);
+        map.put(TYPE_ID_PREFIX + 'Z', boolean.class);
+        map.put(TYPE_ID_PREFIX + 'I', int.class);
+        map.put(TYPE_ID_PREFIX + 'J', long.class);
+        map.put(TYPE_ID_PREFIX + 'T', Date.class);
+        TYPE_ID_MAP = Collections.unmodifiableMap(map);
+    }
+
     public static final String DEFAULT_SELECT_REGEX = "^[a-zA-Z][a-zA-Z0-9_$]*Select$";
     public static final String DEFAULT_UPDATE_REGEX = "^[a-zA-Z][a-zA-Z0-9_$]*(?:Insert|Update|Delete)$";
     public static final String DEFAULT_FREEMARKER_TEMPLATE = defaultFreemarkerTemplate();
@@ -45,9 +58,9 @@ public class CodeGenerator {
         this.freemarkerConf = freemarkerConf;
     }
 
-    public void generate(String packageName, String className, Map<String, String> queries, Writer output) {
+    public void generate(String packageName, String className, String modifier, Map<String, String> queries, Writer output) {
         try {
-            TemplateParams params = createParams(packageName, className, queries);
+            RootTemplateArg params = createTemplateArgs(packageName, className, modifier, queries);
             Reader templateReader = new StringReader(freemarkerTemplate);
             Template ftl = new Template(className, templateReader, freemarkerConf, "UTF-8");
             ftl.process(params, output);
@@ -58,16 +71,39 @@ public class CodeGenerator {
         }
     }
 
-    private TemplateParams createParams(String packageName, String className, Map<String, String> queries) {
-        List<String> selects = new ArrayList<String>();
-        List<String> updates = new ArrayList<String>();
-        for(String name : queries.keySet()) {
-            if(selectRegex.matcher(name).matches()) selects.add(name);
-            else if(updateRegex.matcher(name).matches()) updates.add(name);
+    private RootTemplateArg createTemplateArgs(String packageName, String className, String modifier, Map<String, String> queries) {
+        List<QueryTemplateArg> selects = new ArrayList<QueryTemplateArg>();
+        List<QueryTemplateArg> updates = new ArrayList<QueryTemplateArg>();
+        for(Map.Entry<String, String> en : queries.entrySet()) {
+            String name = en.getKey();
+            String sql = en.getValue();
+            List<ParamTemplateArg> params = createNamedParams(sql);
+            QueryTemplateArg query = new QueryTemplateArg(name, params);
+            if(selectRegex.matcher(name).matches()) selects.add(query);
+            else if(updateRegex.matcher(name).matches()) updates.add(query);
             else
                 throw new BeanQueriesException("Invalid query name, names must match select regex: [" + selectRegex + "] or updateRegex: [" + updateRegex + "]");
         }
-        return new TemplateParams(packageName, className, selects, updates);
+        return new RootTemplateArg(packageName, className, modifier, selects, updates);
+    }
+
+    private static List<ParamTemplateArg> createNamedParams(String sql) {
+        List<String> paramNames = parseParamsNames(sql);
+        List<ParamTemplateArg> args = new ArrayList<ParamTemplateArg>(paramNames.size());
+        for(String fullName : paramNames) {
+            int postLen = TYPE_ID_PREFIX.length() + 1;
+            final ParamTemplateArg arg;
+            if(fullName.length() <= postLen) arg = new ParamTemplateArg(fullName, Object.class);
+            else {
+                String prefix = fullName.substring(0, fullName.length() - postLen);
+                String postfix = fullName.substring(fullName.length() - postLen);
+                Class<?> found = TYPE_ID_MAP.get(postfix);
+                if(null != found) arg = new ParamTemplateArg(prefix, found);
+                else arg = new ParamTemplateArg(fullName, Object.class);
+            }
+            args.add(arg);
+        }
+        return args;
     }
 
     private static Configuration defaultFreemarkerConf() {

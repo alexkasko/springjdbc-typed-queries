@@ -23,6 +23,6 @@ public class CodeGeneratorTest {
         queries.put("myTestDelete", "foo");
 //        Writer out = new OutputStreamWriter(System.out);
         Writer out = new OutputStreamWriter(new ByteArrayOutputStream());
-        new CodeGenerator().generate("foo.bar.baz", "FooBar", queries, out);
+        new CodeGenerator().generate("foo.bar.baz", "FooBar", "", queries, out);
     }
 }
