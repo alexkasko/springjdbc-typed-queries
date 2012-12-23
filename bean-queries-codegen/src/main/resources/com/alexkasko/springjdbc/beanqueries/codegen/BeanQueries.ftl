@@ -6,6 +6,7 @@ import com.alexkasko.springjdbc.iterable.IterableNamedParameterJdbcTemplate;
 import com.alexkasko.springjdbc.iterable.IterableNamedParameterJdbcOperations;
 import com.alexkasko.springjdbc.iterable.CloseableIterator;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
@@ -26,6 +27,10 @@ import static java.util.Collections.unmodifiableSet;
  * To regenerate this file run {@code mvn bean-queries:codegen} from this maven module directory.
  */
 ${modifier}class ${className} {
+    ${modifier}static final RowMapper<String> STRING_ROW_MAPPER = new SingleColumnRowMapper<String>(String.class);
+    ${modifier}static final RowMapper<Integer> INT_ROW_MAPPER = new SingleColumnRowMapper<Integer>(Integer.class);
+    ${modifier}static final RowMapper<Long> LONG_ROW_MAPPER = new SingleColumnRowMapper<Long>(Long.class);
+
     private static final Set<String> GENERATED_QUERIES_NAMES;
 
     private final Map<String, String> queries;

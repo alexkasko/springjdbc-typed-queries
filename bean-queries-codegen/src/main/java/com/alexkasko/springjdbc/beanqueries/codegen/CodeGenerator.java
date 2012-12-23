@@ -9,6 +9,7 @@ import freemarker.template.TemplateException;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static freemarker.ext.beans.BeansWrapper.EXPOSE_PROPERTIES_ONLY;
@@ -21,16 +22,16 @@ import static org.springframework.jdbc.core.namedparam.NamedParamsSqlParser$Acce
  */
 public class CodeGenerator {
     private static final String DEFAULT_TEMPLATE_PATH = "/com/alexkasko/springjdbc/beanqueries/codegen/BeanQueries.ftl";
-//    str
-    private static final String TYPE_ID_PREFIX = "$";
+    private static final Pattern TYPE_ID_REGEX = Pattern.compile("^[a-zA-Z0-9_$]*(String|Name|name|Int|Long|Date)");
     private static final Map<String, Class<?>> TYPE_ID_MAP;
     static {
         Map<String, Class<?>> map = new LinkedHashMap<String, Class<?>>();
-        map.put(TYPE_ID_PREFIX + 'S', String.class);
-        map.put(TYPE_ID_PREFIX + 'Z', boolean.class);
-        map.put(TYPE_ID_PREFIX + 'I', int.class);
-        map.put(TYPE_ID_PREFIX + 'J', long.class);
-        map.put(TYPE_ID_PREFIX + 'T', Date.class);
+        map.put("String", String.class);
+        map.put("Name", String.class);
+        map.put("name", String.class);
+        map.put("Int", int.class);
+        map.put("Long", long.class);
+        map.put("Date", Date.class);
         TYPE_ID_MAP = Collections.unmodifiableMap(map);
     }
 
@@ -90,18 +91,19 @@ public class CodeGenerator {
     private static List<ParamTemplateArg> createNamedParams(String sql) {
         List<String> paramNames = parseParamsNames(sql);
         List<ParamTemplateArg> args = new ArrayList<ParamTemplateArg>(paramNames.size());
-        for(String fullName : paramNames) {
-            int postLen = TYPE_ID_PREFIX.length() + 1;
-            final ParamTemplateArg arg;
-            if(fullName.length() <= postLen) arg = new ParamTemplateArg(fullName, Object.class);
+        for(String name : paramNames) {
+            final Class<?> type;
+            Matcher mat = TYPE_ID_REGEX.matcher(name);
+            if(!mat.matches()) type = Object.class;
             else {
-                String prefix = fullName.substring(0, fullName.length() - postLen);
-                String postfix = fullName.substring(fullName.length() - postLen);
-                Class<?> found = TYPE_ID_MAP.get(postfix);
-                if(null != found) arg = new ParamTemplateArg(prefix, found);
-                else arg = new ParamTemplateArg(fullName, Object.class);
+                if(1 != mat.groupCount()) throw new BeanQueriesException("Invalid type postfix regex: " +
+                        "[" + TYPE_ID_REGEX + "], it must have exactly one group containing postfix value");
+                String postfix = mat.group(1);
+                type = TYPE_ID_MAP.get(postfix);
+                if(null == type) throw new BeanQueriesException("Param type postfix regex: [" + TYPE_ID_REGEX + "] " +
+                        "is inconsistent with types map: [" + TYPE_ID_MAP + "], missed value: [" + postfix + "]");
             }
-            args.add(arg);
+            args.add(new ParamTemplateArg(name, type));
         }
         return args;
     }
