@@ -22,7 +22,7 @@ import static org.springframework.jdbc.core.namedparam.NamedParamsSqlParser$Acce
  */
 public class CodeGenerator {
     private static final String DEFAULT_TEMPLATE_PATH = "/com/alexkasko/springjdbc/beanqueries/codegen/BeanQueries.ftl";
-    private static final Pattern TYPE_ID_REGEX = Pattern.compile("^[a-zA-Z0-9_$]*(String|Name|name|Int|Long|Date)");
+    private static final Pattern TYPE_ID_REGEX = Pattern.compile("^[a-zA-Z0-9_$]*(String|Name|name|Int|Long|Id|id|Date)");
     private static final Map<String, Class<?>> TYPE_ID_MAP;
     static {
         Map<String, Class<?>> map = new LinkedHashMap<String, Class<?>>();
@@ -31,6 +31,8 @@ public class CodeGenerator {
         map.put("name", String.class);
         map.put("Int", int.class);
         map.put("Long", long.class);
+        map.put("Id", long.class);
+        map.put("id", long.class);
         map.put("Date", Date.class);
         TYPE_ID_MAP = Collections.unmodifiableMap(map);
     }
