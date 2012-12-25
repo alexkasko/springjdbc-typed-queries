@@ -5,6 +5,8 @@ import com.alexkasko.springjdbc.beanqueries.common.BeanQueriesException;
 import com.alexkasko.springjdbc.iterable.IterableNamedParameterJdbcTemplate;
 import com.alexkasko.springjdbc.iterable.IterableNamedParameterJdbcOperations;
 import com.alexkasko.springjdbc.iterable.CloseableIterator;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -116,7 +118,7 @@ ${modifier}class ${className} {
 [/#list]
     }
 
-    ${modifier}<T> T ${query.name}Object(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper) {
+    ${modifier}<T> T ${query.name}Single(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper) {
         String sql = checkAndGetSql("${query.name}", paramsBean, mapper);
         SqlParameterSource params = new BeanPropertySqlParameterSource(paramsBean);
         return jt.queryForObject(sql, params, mapper);
@@ -136,7 +138,7 @@ ${modifier}class ${className} {
 
 [#else]
 
-    ${modifier}<T> T ${query.name}Object(RowMapper<T> mapper) {
+    ${modifier}<T> T ${query.name}Single(RowMapper<T> mapper) {
         String sql = checkAndGetSql("${query.name}", "", mapper);
         return jt.getJdbcOperations().queryForObject(sql, mapper);
     }
@@ -172,6 +174,11 @@ ${modifier}class ${className} {
         return sql;
     }
 
+    private void checkSingleRowUpdated(int updatedRowsCount) {
+        if(0 == updatedRowsCount) throw new EmptyResultDataAccessException(1);
+        if(updatedRowsCount > 1) throw new IncorrectResultSizeDataAccessException(1, updatedRowsCount);
+    }
+
 [#list updates as query]
     // ${query.name} methods
 
@@ -188,11 +195,24 @@ ${modifier}class ${className} {
         return jt.update(sql, params);
     }
 
+    ${modifier}void ${query.name}Single(${query.name?cap_first}$Params paramsBean) {
+        String sql = checkAndGetSql("${query.name}", paramsBean);
+        SqlParameterSource params = new BeanPropertySqlParameterSource(paramsBean);
+        int updatedRowsCount = jt.update(sql, params);
+        checkSingleRowUpdated(updatedRowsCount);
+    }
+
 [#else]
 
     ${modifier}int ${query.name}() {
         String sql = checkAndGetSql(jt, "${query.name}", "");
         return jt.getJdbcOperations().update(sql);
+    }
+
+    ${modifier}void ${query.name}Single() {
+        String sql = checkAndGetSql(jt, "${query.name}", "");
+        int updatedRowsCount =  jt.getJdbcOperations().update(sql);
+        checkSingleRowUpdated(updatedRowsCount);
     }
 
 [/#if]
