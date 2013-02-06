@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.alexkasko.springjdbc</groupId>
-    <artifactId>bean-queries-parent</artifactId>
+    <artifactId>typed-queries-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -14,9 +14,9 @@
     </properties>
 
     <modules>
-        <module>bean-queries-common</module>
-        <module>bean-queries-maven-plugin</module>
-        <module>bean-queries-codegen</module>
+        <module>typed-queries-common</module>
+        <module>typed-queries-maven-plugin</module>
+        <module>typed-queries-codegen</module>
     </modules>
 
     <dependencies>
