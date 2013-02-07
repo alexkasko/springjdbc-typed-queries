@@ -60,9 +60,9 @@ public class PlainSqlQueriesParser {
             while(null != (line = re.readLine())) {
                 String trimmed = line.trim();
                 if(0 == trimmed.length()) continue;
-                if(trimmed.startsWith("--")) continue;
                 switch(state) {
                     case STARTED: // search for first query name
+                        if(trimmed.startsWith("--")) continue;
                         Matcher startedMatcher = DEFAULT_QUERY_NAME_REGEX.matcher(line);
                         if(!startedMatcher.matches()) throw new SqlFileParseException(
                                 "Query name not found on start, regex: [" + DEFAULT_QUERY_NAME_REGEX + "]");

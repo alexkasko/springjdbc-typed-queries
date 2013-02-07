@@ -28,7 +28,8 @@ import static java.util.Collections.unmodifiableSet;
 
 /**
  * Wrappers for SQL queries using typed parameters.
- * Generated from "${sourceSqlFileName}" on "${currentDate}".
+ * Generated from "${sourceSqlFileName}".
+ * Generated on "${currentDate}".
  * Do not change this file, change source SQL file instead.
  * To regenerate this file run {@code mvn generate-sources}.
  */
@@ -80,7 +81,7 @@ ${modifier}class ${className} {
     }
 
     /**
-     * jdbc template accessor
+     * Jdbc template accessor
      *
      * @return jdbc template
      */
@@ -307,7 +308,7 @@ ${modifier}class ${className} {
      * @throws DataAccessException on query error
      */
     ${modifier}int ${query.name}() {
-        String sql = checkAndGetSql(jt, "${query.name}", "");
+        String sql = checkAndGetSql("${query.name}", "");
         return jt.getJdbcOperations().update(sql);
     }
 
@@ -318,7 +319,7 @@ ${modifier}class ${className} {
      * @throws DataAccessException on query error
      */
     ${modifier}void ${query.name}Single() {
-        String sql = checkAndGetSql(jt, "${query.name}", "");
+        String sql = checkAndGetSql("${query.name}", "");
         int updatedRowsCount =  jt.getJdbcOperations().update(sql);
         checkSingleRowUpdated(updatedRowsCount);
     }

@@ -49,7 +49,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
+            <artifactId>spring-jdbc</artifactId>
             <version>3.0.2.RELEASE</version>
         </dependency>
     </dependencies>

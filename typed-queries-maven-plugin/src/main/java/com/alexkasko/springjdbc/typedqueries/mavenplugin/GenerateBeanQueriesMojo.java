@@ -119,7 +119,6 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         Writer outWriter = null;
         try {
-
             String fcn = null != fullClassName ? fullClassName : FilenameUtils.removeExtension(queriesFile.getName());
             File outFile = new File(baseDirectory, "src/main/java/" + fcn.replace(".", "/") + ".java");
             if (checkSqlFileDate && outFile.exists() && outFile.isFile() &&
@@ -140,7 +139,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             outWriter = new OutputStreamWriter(counter, "UTF-8");
             getLog().info("Generating queries wrapper for file: [" + queriesFile.getAbsolutePath() + "] " +
                     "into java file: [" + outFile.getAbsolutePath() + "]");
-            cg.generate(queries, fullClassName, queriesFile.getName(), outWriter);
+            cg.generate(queries, fcn, queriesFile.getName(), outWriter);
             getLog().info("Writing compete, bytes written: [" + counter.getCount() + "]");
         } catch(IOException e) {
             throw new MojoFailureException("IO error", e);
