@@ -129,7 +129,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             Map<String, String> queries = readFile(queriesFile);
             CodeGenerator.Builder builder = CodeGenerator.builder();
             if(isPublic) builder.setPublic(isPublic);
-            if(useIterableJdbcTemplate) builder.setPublic(useIterableJdbcTemplate);
+            if(useIterableJdbcTemplate) builder.setUseIterableJdbcTemplate(useIterableJdbcTemplate);
             if(null != selectRegex) builder.setSelectRegex(selectRegex);
             if(null != updateRegex) builder.setUpdateRegex(updateRegex);
             if(null != typeIdMapJson) builder.setTypeIdMap(parseTypeIdMap(typeIdMapJson));
