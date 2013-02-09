@@ -167,6 +167,9 @@ To parse plain sql file [TODO directlink: typed-queries-common library]() may be
 ###Query parameters
 
 Query parameters are parsed using [spring-jdbc API](http://static.springsource.org/spring/docs/3.1.x/javadoc-api/org/springframework/jdbc/core/namedparam/NamedParameterUtils.html#parseSqlStatement%28java.lang.String%29).
+Interfaces are created for each query parameter set. Generated method takes an implementation of such interface,
+wraps it with with [BeanPropertySqlParameterSource](http://static.springsource.org/spring/docs/3.2.x/javadoc-api/org/springframework/jdbc/core/namedparam/BeanPropertySqlParameterSource.html)
+and provide it to `JdbcTemplate`.
 
 ###Generating java class
 
