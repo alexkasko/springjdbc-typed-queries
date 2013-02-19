@@ -38,7 +38,7 @@ Maven configuration (you may use multiple `execution` sections to process multip
     <build>
         <plugins>
             <plugin>
-                <groupId>com.alexkasko.springjdbc</groupId>
+                <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
                 <artifactId>typed-queries-maven-plugin</artifactId>
                 <version>1.0</version>
                 <configuration>
@@ -117,7 +117,7 @@ plugin will generate interface with `Object` getters:
 
 It may be enough for some cases - if parameters names or numbers will be changed in SQL file interface will be
 regenerated and compilation error will be raised. But spring-jdbc parameters parameters have names, and type
-information may be written in postfixes ([TODO direct link: default postfix`->`type` mapping]()):
+information may be written in postfixes ([default postfix`->`type` mapping](http://alexkasko.github.com/springjdbc-typed-queries/javadocs/codegen/com/alexkasko/springjdbc/typedqueries/codegen/CodeGenerator.Builder.html#setTypeIdMap%28java.util.Map%29)):
 
     select * from foo
         where bar = :barCount
@@ -136,7 +136,7 @@ So we've got type-safe queries without harsh restrictions on domain-model classe
 getters as generated interface implementation.
 
 Different mapping may be provided as plugin configuration parameter `typeIdMap` using JSON map, other configuration
-parameters may be found in [TODO direct link: plugin docs]().
+parameters may be found in [plugin docs](http://alexkasko.github.com/springjdbc-typed-queries/plugin/codegen-mojo.html).
 
 Plugin generates different methods for `select` queries and different for `create|update|delete` queries. These
 queries types are determined by query name prefixes, `select` and `create|update|delete` prefixes are used by default.
@@ -162,7 +162,8 @@ Plain SQL file syntax:
  * query body loaded as is preserving whitespaces and line breaks
 
 The same SQL file should be parsed by application and provided to generated class' constructor as `Map<String, String>`.
-To parse plain sql file [TODO directlink: typed-queries-common library]() may be used.
+To parse plain sql file `typed-queries-common library` ([parser sources](https://github.com/alexkasko/springjdbc-typed-queries/blob/master/typed-queries-common/src/main/java/com/alexkasko/springjdbc/typedqueries/common/PlainSqlQueriesParser.java#L1), 
+[javadocs](http://alexkasko.github.com/springjdbc-typed-queries/javadocs/common/com/alexkasko/springjdbc/typedqueries/common/PlainSqlQueriesParser.html)) may be used.
 
 ###Query parameters
 
@@ -173,7 +174,7 @@ and provide it to `JdbcTemplate`.
 
 ###Generating java class
 
-Java class generated using [FreeMarker](http://freemarker.sourceforge.net/) template engine ([TODO direct link: default template]).
+Java class is generated using [FreeMarker](http://freemarker.sourceforge.net/) template engine ([TODO direct link: default template]).
 Different template may be provided through plugin configuration. Generated class contains strict checks on runtime query
 map consistency comparing to source SQL file using for generation.
 
