@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
         <artifactId>typed-queries-parent</artifactId>
-        <version>1.0</version>
+        <version>1.1-SNAPSHOT</version>
     </parent>
     <artifactId>typed-queries-common</artifactId>
     <packaging>jar</packaging>
@@ -24,7 +24,7 @@
         <url>https://github.com/alexkasko/springjdbc-typed-queries</url>
         <connection>scm:git:https://github.com/alexkasko/springjdbc-typed-queries.git</connection>
         <developerConnection>scm:git:https://github.com/alexkasko/springjdbc-typed-queries.git</developerConnection>
-        <tag>1.0</tag>
+        <tag>HEAD</tag>
     </scm>
     <developers>
         <developer>
