@@ -1,7 +1,5 @@
 package com.alexkasko.springjdbc.typedqueries.common;
 
-import com.alexkasko.springjdbc.typedqueries.common.SqlFileParseException;
-
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.LinkedHashMap;

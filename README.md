@@ -1,7 +1,7 @@
 SpringJDBC SQL queries with typed parameters
 ============================================
 
-Maven-plugin, takes file with SQL queries and generates java method for executing each query.
+Maven-plugin, takes file with SQL queries and generates java methods for executing each query.
 For queries, that take input parameters, also generates an interface containing typed parameters getters.
 
 Generated class depends on [spring-jdbc](http://static.springsource.org/spring/docs/3.0.x/spring-framework-reference/html/jdbc.html).
@@ -117,7 +117,7 @@ plugin will generate interface with `Object` getters:
 
 It may be enough for some cases - if parameters names or numbers will be changed in SQL file interface will be
 regenerated and compilation error will be raised. But spring-jdbc parameters parameters have names, and type
-information may be written in postfixes ([TODO direct link: default postfix`->`type`  mapping]()):
+information may be written in postfixes ([TODO direct link: default postfix`->`type` mapping]()):
 
     select * from foo
         where bar = :barCount
@@ -132,7 +132,7 @@ will be converted into:
         Collection getBoo();
     }
 
-So you've got type-safe queries without harsh restrictions on domain-model classes - they would have some additional
+So we've got type-safe queries without harsh restrictions on domain-model classes - they would have some additional
 getters as generated interface implementation.
 
 Different mapping may be provided as plugin configuration parameter `typeIdMap` using JSON map, other configuration
@@ -211,6 +211,6 @@ This project is released under the [Apache License 2.0](http://www.apache.org/li
 Changelog
 ---------
 
-**1.0** (2012-11-09)
+**1.0** (2013-02-19)
 
- * initial version
+ * initial public version

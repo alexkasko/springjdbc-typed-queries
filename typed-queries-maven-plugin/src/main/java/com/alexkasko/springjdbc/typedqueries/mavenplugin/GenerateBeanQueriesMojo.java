@@ -23,15 +23,16 @@ import static org.apache.commons.io.FileUtils.openOutputStream;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 /**
- * User: alexkasko
+ * Maven-plugin, takes file with SQL queries and generates java methods for executing each query.
+ * For queries, that take input parameters, also generates an interface containing typed parameters getters.
+ *
+ * @author alexkasko
  * Date: 12/22/12
  *
  * @goal codegen
  * @phase generate-sources
  */
 public class GenerateBeanQueriesMojo extends AbstractMojo {
-//    private static final Pattern PACKAGE_TAIL_NAME_REGEX = Pattern.compile("^.*\\.([a-zA-Z0-9_]+)$");
-
     /**
      * Queries file
      *
@@ -119,6 +120,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         Writer outWriter = null;
         try {
+            if(!(queriesFile.exists() && queriesFile.isFile())) throw new FileNotFoundException(queriesFile.getAbsolutePath());
             String fcn = null != fullClassName ? fullClassName : FilenameUtils.removeExtension(queriesFile.getName());
             File outFile = new File(baseDirectory, "src/main/java/" + fcn.replace(".", "/") + ".java");
             if (checkSqlFileDate && outFile.exists() && outFile.isFile() &&
