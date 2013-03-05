@@ -40,7 +40,7 @@ Maven configuration (you may use multiple `execution` sections to process multip
             <plugin>
                 <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
                 <artifactId>typed-queries-maven-plugin</artifactId>
-                <version>1.0</version>
+                <version>1.1</version>
                 <configuration>
                     <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
                 </configuration>
@@ -132,6 +132,12 @@ will be converted into:
         Collection getBoo();
     }
 
+Custom postfixes configuration example:
+
+    <configuration>
+        <typeIdMapJson>{"_date":"java.util.Date","_count":"int","_bytes":"byte[]","_load":"float"}</typeIdMapJson>
+    </configuration>
+
 So we've got type-safe queries without harsh restrictions on domain-model classes - they would have some additional
 getters as generated interface implementation.
 
@@ -204,6 +210,12 @@ you may get query (by name) and jdbc template from generated class and execute q
 convenient for dynamic queries, when query template is stored in SQL file and translated into actual query
 in runtime using library like [query-string-builder](https://github.com/alexkasko/query-string-builder).
 
+###Batch inserts
+
+For `insert` (also `update` and `delete`) queries, those take input parameters, additional `*Batch` method
+is generated, that takes `Iterator` and executes inserts in `batch` mode using [batchUpdate](http://static.springsource.org/spring/docs/3.0.x/api/org/springframework/jdbc/core/namedparam/NamedParameterJdbcTemplate.html#batchUpdate%28java.lang.String,%20org.springframework.jdbc.core.namedparam.SqlParameterSource[]%29)
+method.
+
 License information
 -------------------
 
@@ -211,6 +223,10 @@ This project is released under the [Apache License 2.0](http://www.apache.org/li
 
 Changelog
 ---------
+
+**1.1** (2013-03-05)
+
+ * batch inserts support
 
 **1.0** (2013-02-19)
 

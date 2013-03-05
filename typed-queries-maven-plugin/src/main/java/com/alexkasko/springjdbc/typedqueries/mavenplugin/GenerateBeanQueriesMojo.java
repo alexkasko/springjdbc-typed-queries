@@ -39,6 +39,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      * @parameter expression="${typedqueries.queriesFile}"
      * @required
      */
+
     private File queriesFile;
     /**
      * Queries file
@@ -91,7 +92,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
     private String updateRegex;
     /**
      * Mapping of query parameter names postfixes to data types in JSON map format, e.g.
-     * '{"_long": "long.class", "_byte_a": "byte[].class"}', see default in 'CodeGenerator' javadoc
+     * '{"_long": "long", "_byte_a": "byte[]", "_date": "java.util.Date"}', see default in 'CodeGenerator' javadoc
      *
      * @parameter expression="${typedqueries.typeIdMapJson}"
      */

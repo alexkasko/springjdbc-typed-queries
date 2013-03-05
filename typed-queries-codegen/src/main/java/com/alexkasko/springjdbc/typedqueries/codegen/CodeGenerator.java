@@ -253,7 +253,7 @@ public class CodeGenerator {
          * }
          * </pre>
          *
-         * @param typeIdMap
+         * @param typeIdMap postfix->type mapping
          * @return builder itself
          */
         public Builder setTypeIdMap(Map<String, Class<?>> typeIdMap) {

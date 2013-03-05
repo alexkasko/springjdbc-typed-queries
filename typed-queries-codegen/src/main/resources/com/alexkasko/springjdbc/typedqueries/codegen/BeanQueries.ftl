@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -286,6 +287,20 @@ ${modifier}class ${className} {
     }
 
     /**
+     * Executes "${query.name}" query in batch mode
+     *
+     * @param paramsIter parameters iterator
+     * @param batchSize single batch size
+     * @return count of updated rows
+     * @throws DataAccessException on query error
+     */
+    ${modifier}int ${query.name}Batch(Iterator<? extends ${query.name?cap_first}$Params> paramsIter, int batchSize) throws DataAccessException {
+        if(batchSize <= 0) throw new QueryException("Provided batchSize must be positive: [" + batchSize + "]");
+        String sql = checkAndGetSql("${query.name}", paramsIter);
+        return batchUpdate(sql, paramsIter, batchSize);
+    }
+
+    /**
      * Executes "${query.name}" query and checks that exactly one row was updated
      *
      * @param paramsBean parameters object
@@ -326,6 +341,60 @@ ${modifier}class ${className} {
 
 [/#if]
 [/#list]
+
+    /**
+     * Methods for performing batch inserts using provided iterators as parameters
+     *
+     * @param sql sql query text
+     * @param paramsIter query parameters iterator
+     * @param batchSize size of single batch
+     * @return number of updated rows reported by JDBC driver,
+     * {@code -1} if such information is not available
+     */
+    private int batchUpdate(String sql, Iterator<? extends Object> paramsIter, int batchSize) {
+        boolean hasInfoFromDb = true;
+        // mutable for lower overhead
+        BeanPropertySqlParameterSource[] params = new BeanPropertySqlParameterSource[batchSize];
+        int updated = 0;
+        int index = 0;
+        // main cycle
+        while(paramsIter.hasNext()) {
+            params[index] = new BeanPropertySqlParameterSource(paramsIter.next());
+            index += 1;
+            if(0 == index % batchSize) {
+                int[] upArr = jt.batchUpdate(sql, params);
+                if(hasInfoFromDb) {
+                    int up = countUpdatedRows(upArr);
+                    if(-1 == up) hasInfoFromDb = false;
+                    updated += up;
+                }
+                index = 0;
+            }
+        }
+        // tail
+        if(index > 0) {
+            BeanPropertySqlParameterSource[] partParArray = new BeanPropertySqlParameterSource[index];
+            System.arraycopy(params, 0, partParArray, 0, index);
+            int[] upArr = jt.batchUpdate(sql, partParArray);
+            if(hasInfoFromDb) {
+                int up = countUpdatedRows(upArr);
+                if(-1 == up) hasInfoFromDb = false;
+                updated += up;
+            }
+        }
+        return hasInfoFromDb ? updated : -1;
+    }
+
+    // returns -1 on no info from db
+    private static int countUpdatedRows(int[] dbReturned) {
+        int res = 0;
+        for(int updated : dbReturned) {
+            if(updated < 0) return -1;
+            res += updated;
+        }
+        return res;
+    }
+
     /**
      * Exception, that will be thrown out on error
      */
