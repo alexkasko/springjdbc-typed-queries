@@ -8,7 +8,7 @@
     </parent>
     <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
     <artifactId>typed-queries-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.1</version>
     <packaging>pom</packaging>
     <name>Typed SQL queries for spring-jdbc</name>
 
@@ -27,7 +27,7 @@
         <url>https://github.com/alexkasko/springjdbc-typed-queries</url>
         <connection>scm:git:https://github.com/alexkasko/springjdbc-typed-queries.git</connection>
         <developerConnection>scm:git:https://github.com/alexkasko/springjdbc-typed-queries.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>1.1</tag>
     </scm>
     <developers>
         <developer>
