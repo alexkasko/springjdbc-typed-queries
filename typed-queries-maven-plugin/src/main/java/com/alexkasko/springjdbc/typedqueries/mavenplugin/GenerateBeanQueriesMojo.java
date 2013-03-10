@@ -77,6 +77,21 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      */
     private boolean useIterableJdbcTemplate;
     /**
+     * Whether to generate additional update methods, those check that
+     * only single row was changed on update, false by default
+     *
+     * @parameter expression="${typedqueries.useCheckSingleRowUpdates}"
+     */
+    private boolean useCheckSingleRowUpdates;
+    /**
+     * Whether to generate additional insert (DML) methods (with parameters), those
+     * takes {@link java.util.Iterator} of parameters and execute inserts
+     * for the contents of the specified iterator in batch mode, false by default
+     *
+     * @parameter expression="${typedqueries.useBatchInserts}"
+     */
+    private boolean useBatchInserts;
+    /**
      * Regular expression to use for identifying 'select' queries by name,
      * default: '^select[a-zA-Z][a-zA-Z0-9_$]*$'
      *
@@ -85,7 +100,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
     private String selectRegex;
     /**
      * Regular expression to use for identifying 'insert', 'update' and 'delete' queries by name,
-     * default: '^(?:insert|update|delete)[a-zA-Z][a-zA-Z0-9_$]*$'
+     * default: '^(?:insert|update|delete|create|drop)[a-zA-Z][a-zA-Z0-9_$]*$'
      *
      * @parameter expression="${typedqueries.updateRegex}"
      */
@@ -124,7 +139,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             if(!(queriesFile.exists() && queriesFile.isFile())) throw new FileNotFoundException(queriesFile.getAbsolutePath());
             String fcn = null != fullClassName ? fullClassName : FilenameUtils.removeExtension(queriesFile.getName());
             File outFile = new File(baseDirectory, "src/main/java/" + fcn.replace(".", "/") + ".java");
-            if (checkSqlFileDate && outFile.exists() && outFile.isFile() &&
+            if (checkSqlFileDate && outFile.exists() && outFile.isFile() && outFile.length() > 0 &&
                     outFile.lastModified() >= queriesFile.lastModified()) {
                 getLog().info("Typed queries file: [" + outFile.getAbsolutePath() + "] is up to date, skipping code generation");
                 return;
@@ -133,6 +148,8 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             CodeGenerator.Builder builder = CodeGenerator.builder();
             if(isPublic) builder.setPublic(isPublic);
             if(useIterableJdbcTemplate) builder.setUseIterableJdbcTemplate(useIterableJdbcTemplate);
+            if(useCheckSingleRowUpdates) builder.setUseCheckSingleRowUpdates(useCheckSingleRowUpdates);
+            if(useBatchInserts) builder.setUseBatchInserts(useBatchInserts);
             if(null != selectRegex) builder.setSelectRegex(selectRegex);
             if(null != updateRegex) builder.setUpdateRegex(updateRegex);
             if(null != typeIdMapJson) builder.setTypeIdMap(parseTypeIdMap(typeIdMapJson));
@@ -177,7 +194,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
                 props.loadFromXML(is);
                 res = (Map) props;
             } else throw new IOException("Cannot parse queries file: [" + file.getAbsolutePath() +"], " +
-                    "only '*.sql', '*.json', '*.properties' and '*.xml' file are supported");
+                    "only '*.sql', '*.json', '*.properties' and '*.xml' files are supported");
             return res;
         } finally {
             closeQuietly(is);

@@ -17,6 +17,8 @@ public class RootTemplateArg {
     private final String className;
     private final String modifier;
     private final boolean useIterableJdbcTemplate;
+    private final boolean useCheckSingleRowUpdates;
+    private final boolean useBatchInserts;
     private final String sourceSqlFileName;
     private final Collection<QueryTemplateArg> selects;
     private final Collection<QueryTemplateArg> updates;
@@ -28,17 +30,25 @@ public class RootTemplateArg {
      * @param className generated class name
      * @param modifier class and methods modifier, may be 'public', empty (package-private) by default
      * @param useIterableJdbcTemplate whether to use JdbcTemplate extension from this project
-     *                                (https://github.com/alexkasko/springjdbc-iterable)
+*                                (https://github.com/alexkasko/springjdbc-iterable)
+     * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
+     *                                 only single row was changed on update
+     * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
+     *                        takes {@link java.util.Iterator} of parameters and execute inserts
+     *                        for the contents of the specified iterator in batch mode
      * @param sourceSqlFileName name of source SQL file
      * @param selects list of 'select' queries
      * @param updates list of 'update' queries
      */
     RootTemplateArg(String packageName, String className, String modifier, boolean useIterableJdbcTemplate,
-                           String sourceSqlFileName, Collection<QueryTemplateArg> selects, Collection<QueryTemplateArg> updates) {
+                    boolean useCheckSingleRowUpdates, boolean useBatchInserts, String sourceSqlFileName,
+                    Collection<QueryTemplateArg> selects, Collection<QueryTemplateArg> updates) {
         this.packageName = packageName;
         this.className = className;
         this.modifier = modifier;
         this.useIterableJdbcTemplate = useIterableJdbcTemplate;
+        this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
+        this.useBatchInserts = useBatchInserts;
         this.sourceSqlFileName = sourceSqlFileName;
         this.selects = selects;
         this.updates = updates;
@@ -79,6 +89,23 @@ public class RootTemplateArg {
     public boolean isUseIterableJdbcTemplate() {
         return useIterableJdbcTemplate;
     }
+
+    /**
+     * Whether to generate additional update methods, those check that
+     * only single row was changed on update
+     *
+     * @return whether to generate update-check methods
+     */
+    public boolean isUseCheckSingleRowUpdates() { return useCheckSingleRowUpdates; }
+
+    /**
+     * Whether to generate additional insert (DML) methods (with parameters), those
+     * takes {@link java.util.Iterator} of parameters and execute inserts
+     * for the contents of the specified iterator in batch mode
+     *
+     * @return whether to generate batch-insert methods
+     */
+    public boolean isUseBatchInserts() { return useBatchInserts; }
 
     /**
      * Source SQL file name accessor
@@ -127,6 +154,8 @@ public class RootTemplateArg {
         sb.append(", className='").append(className).append('\'');
         sb.append(", modifier='").append(modifier).append('\'');
         sb.append(", useIterableJdbcTemplate=").append(useIterableJdbcTemplate);
+        sb.append(", useCheckSingleRowUpdates=").append(useCheckSingleRowUpdates);
+        sb.append(", useBatchInserts=").append(useBatchInserts);
         sb.append(", sourceSqlFileName='").append(sourceSqlFileName).append('\'');
         sb.append(", selects=").append(selects);
         sb.append(", updates=").append(updates);

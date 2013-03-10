@@ -26,6 +26,8 @@ public class CodeGenerator {
 
     private final boolean isPublic;
     private final boolean useIterableJdbcTemplate;
+    private final boolean useCheckSingleRowUpdates;
+    private final boolean useBatchInserts;
     private final Pattern selectRegex;
     private final Pattern updateRegex;
     private final Map<String, Class<?>> typeIdMap;
@@ -33,20 +35,25 @@ public class CodeGenerator {
     private final Configuration freemarkerConf;
 
     /**
-     * Constrcutor
+     * Constructor
+     *
      *
      * @param isPublic whether generated class and its methods will have 'public' access modifier
      * @param useIterableJdbcTemplate whether to use iterable jdbc template extensions from this
      *                                project (https://github.com/alexkasko/springjdbc-iterable)
+     * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
+     *                                 only single row was changed on update
+     * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
+     *                        takes {@link java.util.Iterator} of parameters and execute inserts
+     *                        for the contents of the specified iterator in batch mode
      * @param selectRegex regular expression to use for identifying 'select' queries by name
      * @param updateRegex regular expression to use for identifying 'insert', 'update' and 'delete' queries by name
      * @param typeIdMap mapping of parameter names postfixes to data types
      * @param freemarkerTemplate freemarker template body
-     * @param freemarkerConf freemarker configuration
-     * @throws CodeGeneratorException on any error
+     * @param freemarkerConf freemarker configuration    @throws CodeGeneratorException on any error
      */
-    public CodeGenerator(boolean isPublic, boolean useIterableJdbcTemplate, String selectRegex,
-                         String updateRegex, Map<String, Class<?>> typeIdMap,
+    public CodeGenerator(boolean isPublic, boolean useIterableJdbcTemplate, boolean useCheckSingleRowUpdates,
+                         boolean useBatchInserts, String selectRegex, String updateRegex, Map<String, Class<?>> typeIdMap,
                          String freemarkerTemplate, Configuration freemarkerConf) throws CodeGeneratorException {
         if(null == selectRegex) throw new CodeGeneratorException("Provided selectRegex is null");
         if(null == updateRegex) throw new CodeGeneratorException("Provided updateRegex is null");
@@ -55,6 +62,8 @@ public class CodeGenerator {
         if(null == freemarkerConf) throw new CodeGeneratorException("Provided freemarkerConf is null");
         this.isPublic = isPublic;
         this.useIterableJdbcTemplate = useIterableJdbcTemplate;
+        this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
+        this.useBatchInserts = useBatchInserts;
         this.selectRegex = Pattern.compile(selectRegex);
         this.updateRegex = Pattern.compile(updateRegex);
         this.typeIdMap = typeIdMap;
@@ -107,9 +116,11 @@ public class CodeGenerator {
             QueryTemplateArg query = new QueryTemplateArg(name, params);
             if (selectRegex.matcher(name).matches()) selects.add(query);
             else if (updateRegex.matcher(name).matches()) updates.add(query);
-            else throw new CodeGeneratorException("Invalid query name, names must match select regex: [" + selectRegex + "] or updateRegex: [" + updateRegex + "]");
+            else throw new CodeGeneratorException("Invalid query name: [" + name + "], names must match select regex: " +
+                        "[" + selectRegex + "] or updateRegex: [" + updateRegex + "]");
         }
-        return new RootTemplateArg(packageName, className, modifier, useIterableJdbcTemplate, sourceSqlFileName, selects, updates);
+        return new RootTemplateArg(packageName, className, modifier, useIterableJdbcTemplate, useCheckSingleRowUpdates,
+                useBatchInserts, sourceSqlFileName, selects, updates);
     }
 
     private List<ParamTemplateArg> createNamedParams(String sql) {
@@ -160,8 +171,10 @@ public class CodeGenerator {
     public static class Builder {
         private boolean isPublic = false;
         private boolean useIterableJdbcTemplate = false;
+        private boolean useCheckSingleRowUpdates = false;
+        private boolean useBatchInserts = false;
         private String selectRegex = "^select[a-zA-Z][a-zA-Z0-9_$]*$";
-        private String updateRegex = "^(?:insert|update|delete)[a-zA-Z][a-zA-Z0-9_$]*$";
+        private String updateRegex = "^(?:insert|update|delete|create|drop)[a-zA-Z][a-zA-Z0-9_$]*$";
         private Map<String, Class<?>> typeIdMap = defaultTypeIdMap();
         private String freemarkerTemplate = defaultFreemarkerTemplate();
         private Configuration freemarkerConf = defaultFreemarkerConf();
@@ -190,6 +203,32 @@ public class CodeGenerator {
         }
 
         /**
+         * Whether to generate additional update methods, those check that
+         * only single row was changed on update
+         *
+         * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
+         *                                 only single row was changed on update
+         * @return builder itself
+         */
+        public Builder setUseCheckSingleRowUpdates(boolean useCheckSingleRowUpdates) {
+            this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
+            return this;
+        }
+
+        /**
+         * Whether to generate additional insert (DML) methods (with parameters), those
+         * takes {@link java.util.Iterator} of parameters and execute inserts
+         *
+         * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
+         *                        takes {@link java.util.Iterator} of parameters and execute inserts
+         * @return builder itself
+         */
+        public Builder setUseBatchInserts(boolean useBatchInserts) {
+            this.useBatchInserts = useBatchInserts;
+            return this;
+        }
+
+        /**
          * Regular expression to use for identifying 'select' queries by name,
          * default: {@code ^select[a-zA-Z][a-zA-Z0-9_$]*$}
          *
@@ -203,7 +242,7 @@ public class CodeGenerator {
 
         /**
          * Regular expression to use for identifying 'insert', 'update' and 'delete' queries by name,
-         * default: {@code ^(?:insert|update|delete)[a-zA-Z][a-zA-Z0-9_$]*$}
+         * default: {@code ^(?:insert|update|delete|create|drop)[a-zA-Z][a-zA-Z0-9_$]*$}
          *
          * @param updateRegex regular expression to use for identifying 'insert',
          *                    'update' and 'delete' queries by name
@@ -216,42 +255,47 @@ public class CodeGenerator {
 
         /**
          * Mapping of parameter names postfixes to data types, default:
-         * <pre>
-         * {@code
-         *   Map<String, Class<?>> map = new LinkedHashMap<String, Class<?>>();
-         *   map.put("String", String.class);
-         *   map.put("Text", String.class);
-         *   map.put("text", String.class);
-         *   map.put("Name", String.class);
-         *   map.put("name", String.class);
-         *   map.put("Bool", boolean.class);
-         *   map.put("Short", short.class);
-         *   map.put("Int", int.class);
-         *   map.put("Long", long.class);
-         *   map.put("Id", long.class);
-         *   map.put("id", long.class);
-         *   map.put("Number", long.class);
-         *   map.put("number", long.class);
-         *   map.put("Count", long.class);
-         *   map.put("count", long.class);
-         *   map.put("Size", long.class);
-         *   map.put("size", long.class);
-         *   map.put("Float", float.class);
-         *   map.put("Double", double.class);
-         *   map.put("Numeric", BigDecimal.class);
-         *   map.put("Binary", byte[].class);
-         *   map.put("binary", byte[].class);
-         *   map.put("Date", Date.class);
-         *   map.put("date", Date.class);
-         *   map.put("List", Collection.class);
-         *   map.put("list", Collection.class);
-         *   map.put("Collection", Collection.class);
-         *   map.put("collection", Collection.class);
-         *   map.put("Set", Collection.class);
-         *   map.put("set", Collection.class);
-         *   return unmodifiableMap(map);
+         * <pre>{@code
+         * {
+         *      "String": "java.lang.String",
+         *      "Text": "java.lang.String",
+         *      "_text": "java.lang.String",
+         *      "Name": "java.lang.String",
+         *      "_name": "java.lang.String",
+         *      "Bool": "boolean"",
+         *      "_bool": "boolean"",
+         *      "Short": "short",
+         *      "_short": "short",
+         *      "Int": "int",
+         *      "_int": "int",
+         *      "Long": "long",
+         *      "_long": "long",
+         *      "Id": "long",
+         *      "_id": "long",
+         *      "Number": "long",
+         *      "_number": "long",
+         *      "Count": "long",
+         *      "_count": "long",
+         *      "Size": "long",
+         *      "_size": "long",
+         *      "Float": "float",
+         *      "_float": "float",
+         *      "Double": "double",
+         *      "_double": "double",
+         *      "Numeric": "java.math.BigDecimal",
+         *      "_numeric": "java.math.BigDecimal",
+         *      "Binary": "byte[]",
+         *      "_binary": "byte[]",
+         *      "Date": "java.util.Date",
+         *      "_date": "java.util.Date",
+         *      "List": "java.util.Collection",
+         *      "_list": "java.util.Collection",
+         *      "Collection": "java.util.Collection",
+         *      "_collection": "java.util.Collection",
+         *      "Set": "java.util.Collection",
+         *      "_set": "java.util.Collection"
          * }
-         * </pre>
+         * }</pre>
          *
          * @param typeIdMap postfix->type mapping
          * @return builder itself
@@ -302,42 +346,50 @@ public class CodeGenerator {
          * @return configured {@link CodeGenerator} instance
          */
         public CodeGenerator build() {
-            return new CodeGenerator(isPublic, useIterableJdbcTemplate, selectRegex, updateRegex, typeIdMap,
+            return new CodeGenerator(isPublic, useIterableJdbcTemplate, useCheckSingleRowUpdates, useBatchInserts, selectRegex, updateRegex, typeIdMap,
                     freemarkerTemplate, freemarkerConf);
         }
 
         private static Map<String, Class<?>> defaultTypeIdMap() {
             Map<String, Class<?>> map = new LinkedHashMap<String, Class<?>>();
             map.put("String", String.class);
+            map.put("_string", String.class);
             map.put("Text", String.class);
-            map.put("text", String.class);
+            map.put("_text", String.class);
             map.put("Name", String.class);
-            map.put("name", String.class);
+            map.put("_name", String.class);
             map.put("Bool", boolean.class);
+            map.put("_bool", boolean.class);
             map.put("Short", short.class);
+            map.put("_short", short.class);
             map.put("Int", int.class);
+            map.put("_int", int.class);
             map.put("Long", long.class);
+            map.put("_long", long.class);
             map.put("Id", long.class);
-            map.put("id", long.class);
+            map.put("_id", long.class);
             map.put("Number", long.class);
-            map.put("number", long.class);
+            map.put("_number", long.class);
             map.put("Count", long.class);
-            map.put("count", long.class);
+            map.put("_count", long.class);
             map.put("Size", long.class);
-            map.put("size", long.class);
+            map.put("_size", long.class);
             map.put("Float", float.class);
+            map.put("_float", float.class);
             map.put("Double", double.class);
+            map.put("_double", double.class);
             map.put("Numeric", BigDecimal.class);
+            map.put("_numeric", BigDecimal.class);
             map.put("Binary", byte[].class);
-            map.put("binary", byte[].class);
+            map.put("_binary", byte[].class);
             map.put("Date", Date.class);
-            map.put("date", Date.class);
+            map.put("_date", Date.class);
             map.put("List", Collection.class);
-            map.put("list", Collection.class);
+            map.put("_list", Collection.class);
             map.put("Collection", Collection.class);
-            map.put("collection", Collection.class);
+            map.put("_collection", Collection.class);
             map.put("Set", Collection.class);
-            map.put("set", Collection.class);
+            map.put("_set", Collection.class);
             return unmodifiableMap(map);
         }
 

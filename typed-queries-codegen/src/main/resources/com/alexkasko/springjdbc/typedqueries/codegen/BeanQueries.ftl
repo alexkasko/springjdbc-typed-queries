@@ -1,4 +1,5 @@
 [#ftl encoding="UTF-8"/]
+[#if useIterableJdbcTemplate][#assign jtClass="IterableNamedParameterJdbcTemplate"][#else][#assign jtClass="NamedParameterJdbcTemplate"][/#if]
 package ${packageName};
 
 [#if useIterableJdbcTemplate]
@@ -6,7 +7,9 @@ import com.alexkasko.springjdbc.iterable.IterableNamedParameterJdbcTemplate;
 import com.alexkasko.springjdbc.iterable.CloseableIterator;
 [/#if]
 import org.springframework.dao.DataAccessException;
+[#if useCheckSingleRowUpdates]
 import org.springframework.dao.EmptyResultDataAccessException;
+[/#if]
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -18,7 +21,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.Collection;
+[#if useBatchInserts]
 import java.util.Iterator;
+[/#if]
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -38,7 +43,7 @@ ${modifier}class ${className} {
     private static final Set<String> GENERATED_QUERIES_NAMES;
 
     private final Map<String, String> queries;
-    private final [#if useIterableJdbcTemplate]IterableNamedParameterJdbcTemplate[#else]NamedParameterJdbcTemplate[/#if] jt;
+    private final ${jtClass} jt;
 
     // static initializer for query names known at generation time
     // added for queries check on instance construction time
@@ -68,7 +73,7 @@ ${modifier}class ${className} {
      * @param jt jdbc template
      * @throws DataAccessException if provided queries names are not consistent with generated ones
      */
-    ${modifier}${className}(Map<String, String> queries, [#if useIterableJdbcTemplate]IterableNamedParameterJdbcTemplate[#else]NamedParameterJdbcTemplate[/#if] jt) throws DataAccessException {
+    ${modifier}${className}(Map<String, String> queries, ${jtClass} jt) throws DataAccessException {
         if(null == queries) throw new QueryException("Provided queries map is null");
         if(null == jt) throw new QueryException("Provided JdbcTemplate is null");
         if(queries.size() != GENERATED_QUERIES_NAMES.size()) throw new QueryException(
@@ -86,7 +91,7 @@ ${modifier}class ${className} {
      *
      * @return jdbc template
      */
-    ${modifier}[#if useIterableJdbcTemplate]IterableNamedParameterJdbcTemplate[#else]NamedParameterJdbcTemplate[/#if] jt() {
+    ${modifier}${jtClass} jt() {
         return this.jt;
     }
 
@@ -182,7 +187,6 @@ ${modifier}class ${className} {
         SqlParameterSource params = new BeanPropertySqlParameterSource(paramsBean);
         return jt.queryForIter(sql, params, mapper);
     }
-
 [/#if]
 [#else]
 
@@ -227,7 +231,6 @@ ${modifier}class ${className} {
         String sql = checkAndGetSql("${query.name}", "", mapper);
         return jt.getIterableJdbcOperations().queryForIter(sql, mapper);
     }
-
 [/#if]
 [/#if]
 [/#list]
@@ -248,6 +251,7 @@ ${modifier}class ${className} {
         if(null == sql) throw new QueryException("No query found with name: [" + name + "], queries: [" + queries.keySet() + "]");
         return sql;
     }
+[#if useCheckSingleRowUpdates]
 
     /**
      * Checks whether provided results size equals '1'
@@ -259,11 +263,12 @@ ${modifier}class ${className} {
         if(0 == updatedRowsCount) throw new EmptyResultDataAccessException(1);
         if(updatedRowsCount > 1) throw new IncorrectResultSizeDataAccessException(1, updatedRowsCount);
     }
-
+[/#if]
 [#list updates as query]
-    // ${query.name} methods
 
+    // ${query.name} methods
 [#if query.params?size > 0]
+
     /**
      * Interface for "${query.name}" query parameters
      */
@@ -285,20 +290,7 @@ ${modifier}class ${className} {
         SqlParameterSource params = new BeanPropertySqlParameterSource(paramsBean);
         return jt.update(sql, params);
     }
-
-    /**
-     * Executes "${query.name}" query in batch mode
-     *
-     * @param paramsIter parameters iterator
-     * @param batchSize single batch size
-     * @return count of updated rows
-     * @throws DataAccessException on query error
-     */
-    ${modifier}int ${query.name}Batch(Iterator<? extends ${query.name?cap_first}$Params> paramsIter, int batchSize) throws DataAccessException {
-        if(batchSize <= 0) throw new QueryException("Provided batchSize must be positive: [" + batchSize + "]");
-        String sql = checkAndGetSql("${query.name}", paramsIter);
-        return batchUpdate(sql, paramsIter, batchSize);
-    }
+[#if useCheckSingleRowUpdates]
 
     /**
      * Executes "${query.name}" query and checks that exactly one row was updated
@@ -313,7 +305,23 @@ ${modifier}class ${className} {
         int updatedRowsCount = jt.update(sql, params);
         checkSingleRowUpdated(updatedRowsCount);
     }
+[/#if]
+[#if useBatchInserts]
 
+    /**
+     * Executes "${query.name}" query in batch mode
+     *
+     * @param paramsIter parameters iterator
+     * @param batchSize single batch size
+     * @return count of updated rows
+     * @throws DataAccessException on query error
+     */
+    ${modifier}int ${query.name}Batch(Iterator<? extends ${query.name?cap_first}$Params> paramsIter, int batchSize) throws DataAccessException {
+        if(batchSize <= 0) throw new QueryException("Provided batchSize must be positive: [" + batchSize + "]");
+        String sql = checkAndGetSql("${query.name}", paramsIter);
+        return batchUpdate(sql, paramsIter, batchSize);
+    }
+[/#if]
 [#else]
 
     /**
@@ -326,6 +334,7 @@ ${modifier}class ${className} {
         String sql = checkAndGetSql("${query.name}", "");
         return jt.getJdbcOperations().update(sql);
     }
+[#if useCheckSingleRowUpdates]
 
     /**
      * Executes "${query.name}" query and checks that exactly one row was updated
@@ -338,9 +347,10 @@ ${modifier}class ${className} {
         int updatedRowsCount =  jt.getJdbcOperations().update(sql);
         checkSingleRowUpdated(updatedRowsCount);
     }
-
+[/#if]
 [/#if]
 [/#list]
+[#if useBatchInserts]
 
     /**
      * Methods for performing batch inserts using provided iterators as parameters
@@ -394,6 +404,7 @@ ${modifier}class ${className} {
         }
         return res;
     }
+[/#if]
 
     /**
      * Exception, that will be thrown out on error
