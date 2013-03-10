@@ -17,6 +17,7 @@ import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import static org.apache.commons.io.FileUtils.openInputStream;
 import static org.apache.commons.io.FileUtils.openOutputStream;
@@ -92,6 +93,12 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      */
     private boolean useBatchInserts;
     /**
+     * Whether to recognize query templates on method generation, false by default
+     *
+     * @parameter expression="${typedqueries.useTemplateStringSubstitution}"
+     */
+    private boolean useTemplateStringSubstitution;
+    /**
      * Regular expression to use for identifying 'select' queries by name,
      * default: '^select[a-zA-Z][a-zA-Z0-9_$]*$'
      *
@@ -105,6 +112,20 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      * @parameter expression="${typedqueries.updateRegex}"
      */
     private String updateRegex;
+    /**
+     * Regular expression to recognize query templates by name,
+     * default: '^[a-zA-Z0-9_$]*Template$'
+     *
+     * @parameter expression="${typedqueries.templateRegex}"
+     */
+    private String templateRegex;
+    /**
+     * Regular expression constraint for template substitution values,
+     * default: '^[a-zA-Z0-9_$]*$'
+     *
+     * @parameter expression="${typedqueries.templateValueConstraintRegex}"
+     */
+    private String templateValueConstraintRegex;
     /**
      * Mapping of query parameter names postfixes to data types in JSON map format, e.g.
      * '{"_long": "long", "_byte_a": "byte[]", "_date": "java.util.Date"}', see default in 'CodeGenerator' javadoc
@@ -147,11 +168,14 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             Map<String, String> queries = readFile(queriesFile);
             CodeGenerator.Builder builder = CodeGenerator.builder();
             if(isPublic) builder.setPublic(isPublic);
-            if(useIterableJdbcTemplate) builder.setUseIterableJdbcTemplate(useIterableJdbcTemplate);
-            if(useCheckSingleRowUpdates) builder.setUseCheckSingleRowUpdates(useCheckSingleRowUpdates);
-            if(useBatchInserts) builder.setUseBatchInserts(useBatchInserts);
+            if(useIterableJdbcTemplate) builder.setUseIterableJdbcTemplate(true);
+            if(useCheckSingleRowUpdates) builder.setUseCheckSingleRowUpdates(true);
+            if(useBatchInserts) builder.setUseBatchInserts(true);
+            if(useTemplateStringSubstitution) builder.setUseTemplateStringSubstitution(true);
             if(null != selectRegex) builder.setSelectRegex(selectRegex);
             if(null != updateRegex) builder.setUpdateRegex(updateRegex);
+            if(null != templateRegex) builder.setTemplateRegex(templateRegex);
+            if(null != templateValueConstraintRegex) builder.setTemplateValueConstraintRegex(templateValueConstraintRegex);
             if(null != typeIdMapJson) builder.setTypeIdMap(parseTypeIdMap(typeIdMapJson));
             if(null != templateFile) builder.setFreemarkerTemplate(FileUtils.readFileToString(templateFile, templateFileEncoding));
             CodeGenerator cg = builder.build();

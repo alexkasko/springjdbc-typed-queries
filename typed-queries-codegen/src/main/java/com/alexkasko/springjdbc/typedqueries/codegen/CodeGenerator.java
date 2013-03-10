@@ -28,8 +28,11 @@ public class CodeGenerator {
     private final boolean useIterableJdbcTemplate;
     private final boolean useCheckSingleRowUpdates;
     private final boolean useBatchInserts;
+    private final boolean useTemplateStringSubstitution;
     private final Pattern selectRegex;
     private final Pattern updateRegex;
+    private final Pattern templateRegex;
+    private final Pattern templateValueConstraintRegex;
     private final Map<String, Class<?>> typeIdMap;
     private final String freemarkerTemplate;
     private final Configuration freemarkerConf;
@@ -42,30 +45,40 @@ public class CodeGenerator {
      * @param useIterableJdbcTemplate whether to use iterable jdbc template extensions from this
      *                                project (https://github.com/alexkasko/springjdbc-iterable)
      * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
-     *                                 only single row was changed on update
+*                                 only single row was changed on update
      * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
-     *                        takes {@link java.util.Iterator} of parameters and execute inserts
-     *                        for the contents of the specified iterator in batch mode
+*                        takes {@link java.util.Iterator} of parameters and execute inserts
+*                        for the contents of the specified iterator in batch mode
+     * @param useTemplateStringSubstitution whether to recognize query templates on method generation
      * @param selectRegex regular expression to use for identifying 'select' queries by name
      * @param updateRegex regular expression to use for identifying 'insert', 'update' and 'delete' queries by name
+     * @param templateRegex regular expression to recognize query templates by name
+     * @param templateValueConstraintRegex regular expression constraint for template substitution values
      * @param typeIdMap mapping of parameter names postfixes to data types
      * @param freemarkerTemplate freemarker template body
      * @param freemarkerConf freemarker configuration    @throws CodeGeneratorException on any error
      */
     public CodeGenerator(boolean isPublic, boolean useIterableJdbcTemplate, boolean useCheckSingleRowUpdates,
-                         boolean useBatchInserts, String selectRegex, String updateRegex, Map<String, Class<?>> typeIdMap,
-                         String freemarkerTemplate, Configuration freemarkerConf) throws CodeGeneratorException {
+                         boolean useBatchInserts, boolean useTemplateStringSubstitution, String selectRegex,
+                         String updateRegex, String templateRegex, String templateValueConstraintRegex,
+                         Map<String, Class<?>> typeIdMap, String freemarkerTemplate,
+                         Configuration freemarkerConf) throws CodeGeneratorException {
         if(null == selectRegex) throw new CodeGeneratorException("Provided selectRegex is null");
         if(null == updateRegex) throw new CodeGeneratorException("Provided updateRegex is null");
+        if(null == templateRegex) throw new CodeGeneratorException("Provided templateRegex is null");
+        if(null == templateValueConstraintRegex) throw new CodeGeneratorException("Provided templateValueConstraintRegex is null");
         if(null == typeIdMap) throw new CodeGeneratorException("Provided typeIdMap is null");
         if(null == freemarkerTemplate) throw new CodeGeneratorException("Provided freemarkerTemplate is null");
         if(null == freemarkerConf) throw new CodeGeneratorException("Provided freemarkerConf is null");
         this.isPublic = isPublic;
         this.useIterableJdbcTemplate = useIterableJdbcTemplate;
         this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
-        this.useBatchInserts = useBatchInserts;
+        this.useBatchInserts = useBatchInserts;;
+        this.useTemplateStringSubstitution = useTemplateStringSubstitution;
         this.selectRegex = Pattern.compile(selectRegex);
         this.updateRegex = Pattern.compile(updateRegex);
+        this.templateRegex = Pattern.compile(templateRegex);
+        this.templateValueConstraintRegex = Pattern.compile(templateValueConstraintRegex);
         this.typeIdMap = typeIdMap;
         this.freemarkerTemplate = freemarkerTemplate;
         this.freemarkerConf = freemarkerConf;
@@ -113,14 +126,16 @@ public class CodeGenerator {
             String name = en.getKey();
             String sql = en.getValue();
             List<ParamTemplateArg> params = createNamedParams(sql);
-            QueryTemplateArg query = new QueryTemplateArg(name, params);
+            boolean isTemplate = useTemplateStringSubstitution && templateRegex.matcher(name).matches();
+            QueryTemplateArg query = new QueryTemplateArg(name, params, isTemplate);
             if (selectRegex.matcher(name).matches()) selects.add(query);
             else if (updateRegex.matcher(name).matches()) updates.add(query);
             else throw new CodeGeneratorException("Invalid query name: [" + name + "], names must match select regex: " +
                         "[" + selectRegex + "] or updateRegex: [" + updateRegex + "]");
         }
         return new RootTemplateArg(packageName, className, modifier, useIterableJdbcTemplate, useCheckSingleRowUpdates,
-                useBatchInserts, sourceSqlFileName, selects, updates);
+                useBatchInserts, useTemplateStringSubstitution, sourceSqlFileName, templateValueConstraintRegex.pattern(),
+                selects, updates);
     }
 
     private List<ParamTemplateArg> createNamedParams(String sql) {
@@ -173,8 +188,11 @@ public class CodeGenerator {
         private boolean useIterableJdbcTemplate = false;
         private boolean useCheckSingleRowUpdates = false;
         private boolean useBatchInserts = false;
+        private boolean useTemplateStringSubstitution = false;
         private String selectRegex = "^select[a-zA-Z][a-zA-Z0-9_$]*$";
         private String updateRegex = "^(?:insert|update|delete|create|drop)[a-zA-Z][a-zA-Z0-9_$]*$";
+        private String templateRegex = "^[a-zA-Z0-9_$]*Template$";
+        private String templateValueConstraintRegex = "^[a-zA-Z0-9_$]*$";
         private Map<String, Class<?>> typeIdMap = defaultTypeIdMap();
         private String freemarkerTemplate = defaultFreemarkerTemplate();
         private Configuration freemarkerConf = defaultFreemarkerConf();
@@ -225,6 +243,17 @@ public class CodeGenerator {
          */
         public Builder setUseBatchInserts(boolean useBatchInserts) {
             this.useBatchInserts = useBatchInserts;
+            return this;
+        }
+
+        /**
+         * Whether to recognize query templates on method generation
+         *
+         * @param useTemplateStringSubstitution whether to recognize query templates on method generation
+         * @return builder itself
+         */
+        public Builder setUseTemplateStringSubstitution(boolean useTemplateStringSubstitution) {
+            this.useTemplateStringSubstitution = useTemplateStringSubstitution;
             return this;
         }
 
@@ -306,6 +335,30 @@ public class CodeGenerator {
         }
 
         /**
+         * Regular expression to recognize query templates by name,
+         * default value: {@code ^[a-zA-Z0-9_$]*Template$}
+         *
+         * @param templateRegex template recognition regex
+         * @return builder itself
+         */
+        public Builder setTemplateRegex(String templateRegex) {
+            this.templateRegex = templateRegex;
+            return this;
+        }
+
+        /**
+         * Regular expression constraint for template substitution values,
+         * default value: {@code ^[a-zA-Z0-9_$]*$}
+         *
+         * @param templateValueConstraintRegex regular expression constraint for template substitution values
+         * @return builder itself
+         */
+        public Builder setTemplateValueConstraintRegex(String templateValueConstraintRegex) {
+            this.templateValueConstraintRegex = templateValueConstraintRegex;
+            return this;
+        }
+
+        /**
          * FreeMarker template body for queries class, loaded from classpath
          * {@code /com/alexkasko/springjdbc/typedqueries/codegen/BeanQueries.ftl} by default
          *
@@ -346,8 +399,9 @@ public class CodeGenerator {
          * @return configured {@link CodeGenerator} instance
          */
         public CodeGenerator build() {
-            return new CodeGenerator(isPublic, useIterableJdbcTemplate, useCheckSingleRowUpdates, useBatchInserts, selectRegex, updateRegex, typeIdMap,
-                    freemarkerTemplate, freemarkerConf);
+            return new CodeGenerator(isPublic, useIterableJdbcTemplate, useCheckSingleRowUpdates, useBatchInserts,
+                    useTemplateStringSubstitution, selectRegex, updateRegex, templateRegex, templateValueConstraintRegex,
+                    typeIdMap, freemarkerTemplate, freemarkerConf);
         }
 
         private static Map<String, Class<?>> defaultTypeIdMap() {

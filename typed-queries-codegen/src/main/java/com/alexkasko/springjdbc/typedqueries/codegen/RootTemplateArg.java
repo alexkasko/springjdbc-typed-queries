@@ -19,7 +19,9 @@ public class RootTemplateArg {
     private final boolean useIterableJdbcTemplate;
     private final boolean useCheckSingleRowUpdates;
     private final boolean useBatchInserts;
+    private final boolean useTemplateStringSubstitution;
     private final String sourceSqlFileName;
+    private final String templateValueConstraintRegex;
     private final Collection<QueryTemplateArg> selects;
     private final Collection<QueryTemplateArg> updates;
 
@@ -32,24 +34,28 @@ public class RootTemplateArg {
      * @param useIterableJdbcTemplate whether to use JdbcTemplate extension from this project
 *                                (https://github.com/alexkasko/springjdbc-iterable)
      * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
-     *                                 only single row was changed on update
+*                                 only single row was changed on update
      * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
-     *                        takes {@link java.util.Iterator} of parameters and execute inserts
-     *                        for the contents of the specified iterator in batch mode
+*                        takes {@link java.util.Iterator} of parameters and execute inserts
+*                        for the contents of the specified iterator in batch mode
+     * @param useTemplateStringSubstitution whether to recognize query templates on method generation
      * @param sourceSqlFileName name of source SQL file
+     * @param templateValueConstraintRegex regular expression constraint for template substitution values
      * @param selects list of 'select' queries
      * @param updates list of 'update' queries
      */
     RootTemplateArg(String packageName, String className, String modifier, boolean useIterableJdbcTemplate,
-                    boolean useCheckSingleRowUpdates, boolean useBatchInserts, String sourceSqlFileName,
-                    Collection<QueryTemplateArg> selects, Collection<QueryTemplateArg> updates) {
+                    boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, String sourceSqlFileName,
+                    String templateValueConstraintRegex, Collection<QueryTemplateArg> selects, Collection<QueryTemplateArg> updates) {
         this.packageName = packageName;
         this.className = className;
         this.modifier = modifier;
         this.useIterableJdbcTemplate = useIterableJdbcTemplate;
         this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
         this.useBatchInserts = useBatchInserts;
+        this.useTemplateStringSubstitution = useTemplateStringSubstitution;
         this.sourceSqlFileName = sourceSqlFileName;
+        this.templateValueConstraintRegex = templateValueConstraintRegex;
         this.selects = selects;
         this.updates = updates;
     }
@@ -108,12 +114,28 @@ public class RootTemplateArg {
     public boolean isUseBatchInserts() { return useBatchInserts; }
 
     /**
+     * Whether to recognize query templates on method generation
+     *
+     * @return whether to recognize query templates on method generation
+     */
+    public boolean isUseTemplateStringSubstitution() { return useTemplateStringSubstitution; }
+
+    /**
      * Source SQL file name accessor
      *
      * @return source SQL file name
      */
     public String getSourceSqlFileName() {
         return sourceSqlFileName;
+    }
+
+    /**
+     * Regular expression constraint for template substitution values
+     *
+     * @return regular expression constraint for template substitution values
+     */
+    public String getTemplateValueConstraintRegex() {
+        return templateValueConstraintRegex;
     }
 
     /**
@@ -156,7 +178,9 @@ public class RootTemplateArg {
         sb.append(", useIterableJdbcTemplate=").append(useIterableJdbcTemplate);
         sb.append(", useCheckSingleRowUpdates=").append(useCheckSingleRowUpdates);
         sb.append(", useBatchInserts=").append(useBatchInserts);
+        sb.append(", useTemplateStringSubstitution=").append(useTemplateStringSubstitution);
         sb.append(", sourceSqlFileName='").append(sourceSqlFileName).append('\'');
+        sb.append(", templateValueConstraintRegex='").append(templateValueConstraintRegex).append('\'');
         sb.append(", selects=").append(selects);
         sb.append(", updates=").append(updates);
         sb.append('}');
