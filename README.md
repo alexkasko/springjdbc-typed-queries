@@ -186,7 +186,7 @@ and provide it to `JdbcTemplate`.
 
 ###Generating java class
 
-Java class is generated using [FreeMarker](http://freemarker.sourceforge.net/) template engine ([TODO direct link: default template]).
+Java class is generated using [FreeMarker](http://freemarker.sourceforge.net/) template engine ([default template](https://github.com/alexkasko/springjdbc-typed-queries/blob/master/typed-queries-codegen/src/main/resources/com/alexkasko/springjdbc/typedqueries/codegen/BeanQueries.ftl)).
 Different template may be provided through plugin configuration. Generated class contains strict checks on runtime query
 map consistency comparing to source SQL file using for generation.
 
@@ -256,9 +256,10 @@ Plugin supports string placeholder substitution when query in file is a template
 with provided values before query execution.
 
 _Note: despite all provided parameters are checked using regular expression (`templateValueConstraintRegex`, by default: `^[a-zA-Z0-9_$]*$`),
-this feature should **NEVER** be used for concatenating **USER PROVIDED** values.
-[Bad things](http://xkcd.com/327/) may happen. It was designed to use with internal system parameters known only in runtime,
-e.g. creating separate table for each object of some kind and parametrizing table names with object ID's_
+this feature should **NEVER** be used for substituting **USER PROVIDED** values. [Bad things](http://xkcd.com/327/) may happen._
+
+It's better to use it with internal system parameters known only in runtime,
+e.g. creating separate table for each object of some kind and parametrizing table names with object ID's.
 
 For "template" queries all generated methods will contain additional `Object... substitutions` vararg parameters that
 will be interpreted as `key1, value1, key2, value2,... keyN, valueN`. Query name regular expression matching is used
