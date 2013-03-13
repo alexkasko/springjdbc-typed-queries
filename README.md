@@ -40,7 +40,7 @@ Maven configuration (you may use multiple `execution` sections to process multip
             <plugin>
                 <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
                 <artifactId>typed-queries-maven-plugin</artifactId>
-                <version>1.1</version>
+                <version>1.2</version>
                 <configuration>
                     <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
                 </configuration>
@@ -66,20 +66,26 @@ Generated interface for query parameters:
 
 Generated methods:
 
-    // consructor, takes queries (name -> text) map and jdbc template, that will be used for query execution
+    // constructor, takes queries (name -> text) map and jdbc template, that will be used for query execution
     Foo$Queries(Map<String, String> queries, NamedParameterJdbcTemplate jt)
     // executes select and returns list
     <T> List<T> selectSomeDataFromFoo(SelectSomeDataFromFoo$Params paramsBean, RowMapper<T> mapper)
     // executes select and returns exactly one object
     <T> T selectSomeDataFromFooSingle(SelectSomeDataFromFoo$Params paramsBean, RowMapper<T> mapper)
-    // update without parameters
+    // update
     int updateFooSetCurrentDate()
-    // update, checks that exactly one row was updated
-    void updateFooSetCurrentDateSingle()
 
 To use these methods from your code you should implement parameters interface (`SelectSomeDataFromFoo$Params`,
 it usually may be implemented by existing domain-model objects) and provide a row mapper (
 [springjdbc-constructor-mapper](https://github.com/alexkasko/springjdbc-constructor-mapper) may be used).
+
+Additional methods may be generated (enabled by plugin config parameters):
+ * execute select and return iterator - `useIterableJdbcTemplate` flag
+ * execute update and check that exactly one row was updated - `useCheckSingleRowUpdates` flag
+ * execute inserts in batch mode (consuming paramters iterator) - `useBatchInserts` flag
+ * substitute placeholders (not query parameters) in SQL string before execution - `useTemplateStringSubstitution` flag
+
+See additional information about these extensions below.
 
 Solving SQL queries maintenance problem
 ---------------------------------------
@@ -194,27 +200,104 @@ parameter.
 By default generated class uses `NamedParameterJdbcTemplate` for query execution. It also supports
 [iterable jdbc template extensions](https://github.com/alexkasko/springjdbc-iterable). Additional methods
 returning [CloseableIterator](http://alexkasko.github.com/springjdbc-iterable/javadocs/com/alexkasko/springjdbc/iterable/CloseableIterator.html)
-will be generated. It will require [IterableNamedParameterJdbcTemplate](http://alexkasko.github.com/springjdbc-iterable/javadocs/com/alexkasko/springjdbc/iterable/IterableNamedParameterJdbcTemplate.html)
+will be generated. Configuration:
+
+    <configuration>
+        <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
+        <useIterableJdbcTemplate>true</useIterableJdbcTemplate>
+    </configuration>
+
+It will require [IterableNamedParameterJdbcTemplate](http://alexkasko.github.com/springjdbc-iterable/javadocs/com/alexkasko/springjdbc/iterable/IterableNamedParameterJdbcTemplate.html)
 as constructor argument and additional dependency (from maven central):
 
     <dependency>
         <groupId>com.alexkasko.springjdbc</groupId>
         <artifactId>springjdbc-iterable</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </dependency>
 
-###Dynamic queries
+Additional generated method:
 
-Generated class hold query map and jdbc template provided on construction. So instead of using one of generated methods
-you may get query (by name) and jdbc template from generated class and execute query directly. This may be
-convenient for dynamic queries, when query template is stored in SQL file and translated into actual query
-in runtime using library like [query-string-builder](https://github.com/alexkasko/query-string-builder).
+    <T> CloseableIterator<T> selectFooIter(SelectFoo$Params paramsBean, RowMapper<T> mapper)
+
+###Updates with checks
+
+Sometimes it's useful to check that exactly one row was updated in DB after update/delete operation (usually by id).
+Plugin can generate additional methods for all DML operations:
+
+    <configuration>
+        <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
+        <useCheckSingleRowUpdates>true</useCheckSingleRowUpdates>
+    </configuration>
+
+Additional generated method:
+
+    void updateSomethingSingle(UpdateSomething$Params paramsBean)
 
 ###Batch inserts
 
 For `insert` (also `update` and `delete`) queries, those take input parameters, additional `*Batch` method
-is generated, that takes `Iterator` and executes inserts in `batch` mode using [batchUpdate](http://static.springsource.org/spring/docs/3.0.x/api/org/springframework/jdbc/core/namedparam/NamedParameterJdbcTemplate.html#batchUpdate%28java.lang.String,%20org.springframework.jdbc.core.namedparam.SqlParameterSource[]%29)
-method.
+may be generated, that takes `Iterator` and executes inserts in `batch` mode using [batchUpdate](http://static.springsource.org/spring/docs/3.0.x/api/org/springframework/jdbc/core/namedparam/NamedParameterJdbcTemplate.html#batchUpdate%28java.lang.String,%20org.springframework.jdbc.core.namedparam.SqlParameterSource[]%29)
+method:
+
+    <configuration>
+        <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
+        <useBatchInserts>true</useBatchInserts>
+    </configuration>
+
+Additional generated method:
+
+    int insertSomethingBatch(Iterator<? extends InsertSomethingBatch$Params> paramsIter, int batchSize)
+
+###Dynamic queries
+
+In some situations JDBC parameters are not enough for query parametrization (e.g. parameters in table names etc).
+Plugin supports string placeholder substitution when query in file is a template with placeholders, that are substituted
+with provided values before query execution.
+
+_Note: despite all provided parameters are checked using regular expression (`templateValueConstraintRegex`, by default: `^[a-zA-Z0-9_$]*$`),
+this feature should **NEVER** be used for concatenating **USER PROVIDED** values.
+[Bad things](http://xkcd.com/327/) may happen. It was designed to use with internal system parameters known only in runtime,
+e.g. creating separate table for each object of some kind and parametrizing table names with object ID's_
+
+For "template" queries all generated methods will contain additional `Object... substitutions` vararg parameters that
+will be interpreted as `key1, value1, key2, value2,... keyN, valueN`. Query name regular expression matching is used
+to distinguish "temlate" queries from regular ones, `templateRegex` parameter, by default: `^[a-zA-Z0-9_$]*Template$`
+
+Configuration:
+
+    <configuration>
+        <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
+        <useTemplateStringSubstitution>true</useTemplateStringSubstitution>
+    </configuration>
+
+Placeholder substitution is done using [StrSubstitutor](http://commons.apache.org/proper/commons-lang/javadocs/api-2.6/org/apache/commons/lang/text/StrSubstitutor.html)
+class, so additional maven dependency should be added:
+
+    <dependency>
+        <groupId>commons-lang</groupId>
+        <artifactId>commons-lang</artifactId>
+        <version>2.6</version>
+    </dependency>
+
+Query example:
+
+    /** selectFooTemplate */
+    select * from foo_tab_${tabId}
+        where bar = :barName
+
+Generated method:
+
+    <T> List<T> selectFooTemplate(SelectFooTemplate$Params paramsBean, RowMapper<T> mapper, Object... substitutions)
+
+Usage example:
+
+    int tabId = 42;
+    List<Foo> foos = qrs.selectFooTemplate(bean, mapper, "tabId", tabId);
+
+If this support for dynamic queries is "not dynamic enough" and you need something like Hibernate Criteria API
+you may get query template string from `*$Queries` class using `queryText` method and use [query-string-builder](https://github.com/alexkasko/query-string-builder)
+library to construct actual query string in runtime.
 
 License information
 -------------------
@@ -223,6 +306,11 @@ This project is released under the [Apache License 2.0](http://www.apache.org/li
 
 Changelog
 ---------
+
+**1.2** (2013-03-12)
+
+ * query templates support (dynamic queries)
+ * more settings, extensions disabled by default
 
 **1.1** (2013-03-05)
 
