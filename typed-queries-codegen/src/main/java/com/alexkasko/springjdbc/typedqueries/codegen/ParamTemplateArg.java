@@ -44,6 +44,26 @@ public class ParamTemplateArg {
      * {@inheritDoc}
      */
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ParamTemplateArg that = (ParamTemplateArg) o;
+        if (name != null ? !name.equals(that.name) : that.name != null) return false;
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+        return name != null ? name.hashCode() : 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("ParamTemplateArg");

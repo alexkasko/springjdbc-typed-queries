@@ -125,7 +125,7 @@ public class CodeGenerator {
         for (Map.Entry<String, String> en : queries.entrySet()) {
             String name = en.getKey();
             String sql = en.getValue();
-            List<ParamTemplateArg> params = createNamedParams(sql);
+            Set<ParamTemplateArg> params = createNamedParams(sql);
             boolean isTemplate = useTemplateStringSubstitution && templateRegex.matcher(name).matches();
             QueryTemplateArg query = new QueryTemplateArg(name, params, isTemplate);
             if (selectRegex.matcher(name).matches()) selects.add(query);
@@ -138,9 +138,9 @@ public class CodeGenerator {
                 selects, updates);
     }
 
-    private List<ParamTemplateArg> createNamedParams(String sql) {
+    private Set<ParamTemplateArg> createNamedParams(String sql) {
         List<String> paramNames = parseParamsNames(sql);
-        List<ParamTemplateArg> args = new ArrayList<ParamTemplateArg>(paramNames.size());
+        Set<ParamTemplateArg> args = new LinkedHashSet<ParamTemplateArg>(paramNames.size());
         for (String name : paramNames) {
             args.add(new ParamTemplateArg(name, typeForName(name)));
         }
