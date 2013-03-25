@@ -128,7 +128,7 @@
 <FONT color="green">125</FONT>            for (Map.Entry&lt;String, String&gt; en : queries.entrySet()) {<a name="line.125"></a>
 <FONT color="green">126</FONT>                String name = en.getKey();<a name="line.126"></a>
 <FONT color="green">127</FONT>                String sql = en.getValue();<a name="line.127"></a>
-<FONT color="green">128</FONT>                List&lt;ParamTemplateArg&gt; params = createNamedParams(sql);<a name="line.128"></a>
+<FONT color="green">128</FONT>                Set&lt;ParamTemplateArg&gt; params = createNamedParams(sql);<a name="line.128"></a>
 <FONT color="green">129</FONT>                boolean isTemplate = useTemplateStringSubstitution &amp;&amp; templateRegex.matcher(name).matches();<a name="line.129"></a>
 <FONT color="green">130</FONT>                QueryTemplateArg query = new QueryTemplateArg(name, params, isTemplate);<a name="line.130"></a>
 <FONT color="green">131</FONT>                if (selectRegex.matcher(name).matches()) selects.add(query);<a name="line.131"></a>
@@ -141,9 +141,9 @@
 <FONT color="green">138</FONT>                    selects, updates);<a name="line.138"></a>
 <FONT color="green">139</FONT>        }<a name="line.139"></a>
 <FONT color="green">140</FONT>    <a name="line.140"></a>
-<FONT color="green">141</FONT>        private List&lt;ParamTemplateArg&gt; createNamedParams(String sql) {<a name="line.141"></a>
+<FONT color="green">141</FONT>        private Set&lt;ParamTemplateArg&gt; createNamedParams(String sql) {<a name="line.141"></a>
 <FONT color="green">142</FONT>            List&lt;String&gt; paramNames = parseParamsNames(sql);<a name="line.142"></a>
-<FONT color="green">143</FONT>            List&lt;ParamTemplateArg&gt; args = new ArrayList&lt;ParamTemplateArg&gt;(paramNames.size());<a name="line.143"></a>
+<FONT color="green">143</FONT>            Set&lt;ParamTemplateArg&gt; args = new LinkedHashSet&lt;ParamTemplateArg&gt;(paramNames.size());<a name="line.143"></a>
 <FONT color="green">144</FONT>            for (String name : paramNames) {<a name="line.144"></a>
 <FONT color="green">145</FONT>                args.add(new ParamTemplateArg(name, typeForName(name)));<a name="line.145"></a>
 <FONT color="green">146</FONT>            }<a name="line.146"></a>
