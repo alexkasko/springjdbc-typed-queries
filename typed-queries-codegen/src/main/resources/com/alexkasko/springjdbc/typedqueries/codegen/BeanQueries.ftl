@@ -7,9 +7,6 @@ package ${packageName};
 import com.alexkasko.springjdbc.iterable.IterableNamedParameterJdbcTemplate;
 import com.alexkasko.springjdbc.iterable.CloseableIterator;
 [/#if]
-[#if useTemplateStringSubstitution]
-import org.apache.commons.lang.text.StrSubstitutor;
-[/#if]
 import org.springframework.dao.DataAccessException;
 [#if useCheckSingleRowUpdates]
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -25,9 +22,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.Collection;
-[#if useTemplateStringSubstitution]
-import java.util.HashMap;
-[/#if]
 [#if useBatchInserts]
 import java.util.Iterator;
 [/#if]
@@ -36,6 +30,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 [#if useTemplateStringSubstitution]
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 [/#if]
 
@@ -56,11 +52,17 @@ import static java.util.Collections.unmodifiableSet;
 ${modifier}class ${className} {
     private static final Set<String> GENERATED_QUERIES_NAMES;
 [#if useTemplateStringSubstitution]
+    private static final String SUBSTITUTE_KEY_PATTERN_PREFIX = "\\$\\{";
+    private static final String SUBSTITUTE_KEY_PATTERN_POSTFIX = "(?:\\(.*?\\))?\\}";
+    private static final Pattern SUBSTITUTE_KEY_RESTRICTION_PATTERN = Pattern.compile("^[a-zA-Z0-9_]+$");
     private static final Pattern SUBSTITUTE_VALUE_PATTERN = Pattern.compile("${templateValueConstraintRegex}");
 [/#if]
 
     private final Map<String, String> queries;
     private final ${jtClass} jt;
+[#if useTemplateStringSubstitution]
+    private final Map<String, Pattern> substituteMap = new ConcurrentHashMap<String, Pattern>();
+[/#if]
 
     // static initializer for query names known at generation time
     // added for queries check on instance construction time
@@ -152,8 +154,7 @@ ${modifier}class ${className} {
     ${modifier}<T> List<T> ${query.name}(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         SqlParameterSource params = new ${bpspsClass}(paramsBean);
         return jt.query(sql, params, mapper);
@@ -173,8 +174,7 @@ ${modifier}class ${className} {
     ${modifier}<T> T ${query.name}Single(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         SqlParameterSource params = new ${bpspsClass}(paramsBean);
         return jt.queryForObject(sql, params, mapper);
@@ -193,8 +193,7 @@ ${modifier}class ${className} {
     ${modifier}<T> CloseableIterator<T> ${query.name}Iter(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         SqlParameterSource params = new ${bpspsClass}(paramsBean);
         return jt.queryForIter(sql, params, mapper);
@@ -213,8 +212,7 @@ ${modifier}class ${className} {
     ${modifier}<T> List<T> ${query.name}(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "", mapper);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         return jt.getJdbcOperations().query(sql, mapper);
     }
@@ -232,8 +230,7 @@ ${modifier}class ${className} {
     ${modifier}<T> T ${query.name}Single(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "", mapper);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         return jt.getJdbcOperations().queryForObject(sql, mapper);
     }
@@ -250,8 +247,7 @@ ${modifier}class ${className} {
     ${modifier}<T> CloseableIterator<T> ${query.name}Iter(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "", mapper);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         return jt.getIterableJdbcOperations().queryForIter(sql, mapper);
     }
@@ -284,8 +280,7 @@ ${modifier}class ${className} {
     ${modifier}int ${query.name}(${query.name?cap_first}$Params paramsBean[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         SqlParameterSource params = new ${bpspsClass}(paramsBean);
         return jt.update(sql, params);
@@ -302,8 +297,7 @@ ${modifier}class ${className} {
     ${modifier}void ${query.name}Single(${query.name?cap_first}$Params paramsBean[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         SqlParameterSource params = new ${bpspsClass}(paramsBean);
         int updatedRowsCount = jt.update(sql, params);
@@ -324,8 +318,7 @@ ${modifier}class ${className} {
         if(batchSize <= 0) throw new QueryException("Provided batchSize must be positive: [" + batchSize + "]");
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsIter);
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         return batchUpdate(sql, paramsIter, batchSize);
     }
@@ -341,8 +334,7 @@ ${modifier}class ${className} {
     ${modifier}int ${query.name}([#if query.template]Object... substitutions[/#if]) {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "");
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         return jt.getJdbcOperations().update(sql);
     }
@@ -357,8 +349,7 @@ ${modifier}class ${className} {
     ${modifier}void ${query.name}Single([#if query.template]Object... substitutions[/#if]) {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "");
 [#if query.template]
-        Map<String, String> substitutionMap = convertSubstitutionsToMap(substitutions);
-        String sql = StrSubstitutor.replace(sqlTemplate, substitutionMap);
+        String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         int updatedRowsCount =  jt.getJdbcOperations().update(sql);
         checkSingleRowUpdated(updatedRowsCount);
@@ -471,32 +462,44 @@ ${modifier}class ${className} {
 [#if useTemplateStringSubstitution]
 
     /**
-     * Coverts substitutions vararg array into {@link HashMap} checking null elements and duplicate keys
+     * Substitute placeholders in sql query template
      *
-     * @param input substitutions vararg array
-     * @return substitutions hashmap
+     * @param template sql query template
+     * @param substitutions substitutions array {@code [key1, val2, key2, val2,...]}
+     * @return sql query string
      */
-    private Map<String, String> convertSubstitutionsToMap(Object[] input) {
-        if(null == input) throw new QueryException("Provided substitutions array is null");
-        if(0 == input.length) throw new QueryException("Provided substitutions array is empty");
-        if(0 != input.length % 2) throw new QueryException("Placeholders vararg array must have even numbers of elements " +
-                "(they will be represented as [key1, val2, key2, val2,...]), but length was: [" + input.length + "]");
-        Map<String, String> res = new HashMap<String, String>(input.length/2);
-        for (int i = 0; i < input.length; i += 2) {
-            Object key = input[i];
+    private String substitute(String template, Object[] substitutions) {
+        if(null == substitutions) throw new QueryException("Provided substitutions array is null");
+        if(0 == substitutions.length) throw new QueryException("Provided substitutions array is empty");
+        if(0 != substitutions.length % 2) throw new QueryException("Placeholders vararg array must have even numbers of elements " +
+                "(they will be represented as [key1, val2, key2, val2,...]), but length was: [" + substitutions.length + "]");
+        String sql = template;
+        for (int i = 0; i < substitutions.length; i += 2) {
+            Object key = substitutions[i];
             if(null == key) throw new QueryException("Provided substitutions vararg array element (key) " +
                     "is null at position: [" + i + "]");
-            Object val = input[i+1];
+            String keystr = key.toString();
+            if(!SUBSTITUTE_KEY_RESTRICTION_PATTERN.matcher(keystr).matches()) throw new QueryException(
+                    "Provided substitutions vararg array element (key): [" + keystr + "] does not match " +
+                    "restriction regex: [" + SUBSTITUTE_KEY_RESTRICTION_PATTERN + "] at position: [" + i + "]");
+            Object val = substitutions[i+1];
             if(null == val) throw new QueryException("Provided substitutions vararg array element (value) " +
                     "is null at position: [" + i + "]");
             String valstr = val.toString();
             if(!SUBSTITUTE_VALUE_PATTERN.matcher(valstr).matches()) throw new QueryException("Provided substitutions vararg array element " +
                     "(value) does not match SQL injection prevention regex: [" + SUBSTITUTE_VALUE_PATTERN + "] at position: [" + i + "]");
-            String existed = res.put(key.toString(), valstr);
-            if(null != existed) throw new QueryException("Provided substitutions vararg array contains duplicate key " +
-                    "on position: [" + i + "]");
+            Pattern existed = substituteMap.get(keystr);
+            final Pattern regex;
+            if(null == existed) {
+                regex = Pattern.compile(SUBSTITUTE_KEY_PATTERN_PREFIX + keystr + SUBSTITUTE_KEY_PATTERN_POSTFIX);
+                substituteMap.put(keystr, regex);
+            } else regex = existed;
+            Matcher ma = regex.matcher(sql);
+            String replaced = ma.replaceAll(valstr);
+            if(sql.equals(replaced)) throw new QueryException("Provided substitutions key: [" + key + "] not found in template: [" + sql + "]");
+            sql = replaced;
         }
-        return res;
+        return sql;
     }
 [/#if]
 [#if useUnderscoredToCamel]
@@ -647,6 +650,8 @@ ${modifier}class ${className} {
      * Exception, that will be thrown out on error
      */
     static class QueryException extends DataAccessException {
+        private static final long serialVersionUID = 4365332327519682601L;
+
         public QueryException(String msg) {
             super(msg);
         }
