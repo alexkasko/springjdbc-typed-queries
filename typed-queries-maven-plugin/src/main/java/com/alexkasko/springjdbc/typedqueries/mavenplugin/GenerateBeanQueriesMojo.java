@@ -63,10 +63,10 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      */
      private boolean checkSqlFileDate;
     /**
-     * Whether to make generated class and its methods public,
-     * package-private by default
+     * Whether to make generated class and its methods public or
+     * package-private, true by default
      *
-     * @parameter expression="${typedqueries.isPublic}"
+     * @parameter expression="${typedqueries.isPublic}" default-value="true"
      */
     private boolean isPublic;
     /**
@@ -173,7 +173,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             }
             Map<String, String> queries = readFile(queriesFile);
             CodeGenerator.Builder builder = CodeGenerator.builder();
-            if(isPublic) builder.setPublic(isPublic);
+            if(!isPublic) builder.setPublic(false);
             if(useIterableJdbcTemplate) builder.setUseIterableJdbcTemplate(true);
             if(useCheckSingleRowUpdates) builder.setUseCheckSingleRowUpdates(true);
             if(useBatchInserts) builder.setUseBatchInserts(true);

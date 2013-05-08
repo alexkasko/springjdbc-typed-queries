@@ -514,7 +514,7 @@ ${modifier}class ${className} {
          *
          * @param object the bean instance to wrap
          */
-        public UnderscoredBeanPropertySqlParameterSource(Object object) {
+        private UnderscoredBeanPropertySqlParameterSource(Object object) {
             super(object);
         }
 
@@ -649,10 +649,10 @@ ${modifier}class ${className} {
     /**
      * Exception, that will be thrown out on error
      */
-    static class QueryException extends DataAccessException {
+    ${modifier}static class QueryException extends DataAccessException {
         private static final long serialVersionUID = 4365332327519682601L;
 
-        public QueryException(String msg) {
+        ${modifier}QueryException(String msg) {
             super(msg);
         }
     }

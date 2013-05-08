@@ -221,7 +221,7 @@ public class CodeGenerator {
      * Builder class for configuring and instantiating {@link CodeGenerator}
      */
     public static class Builder {
-        private boolean isPublic = false;
+        private boolean isPublic = true;
         private boolean useIterableJdbcTemplate = false;
         private boolean useCheckSingleRowUpdates = false;
         private boolean useBatchInserts = false;
