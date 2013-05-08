@@ -20,6 +20,7 @@ public class RootTemplateArg {
     private final boolean useCheckSingleRowUpdates;
     private final boolean useBatchInserts;
     private final boolean useTemplateStringSubstitution;
+    private final boolean useUnderscoredToCamel;
     private final String sourceSqlFileName;
     private final String templateValueConstraintRegex;
     private final Collection<QueryTemplateArg> selects;
@@ -39,13 +40,14 @@ public class RootTemplateArg {
 *                        takes {@link java.util.Iterator} of parameters and execute inserts
 *                        for the contents of the specified iterator in batch mode
      * @param useTemplateStringSubstitution whether to recognize query templates on method generation
+     * @param useUnderscoredToCamel whether to convert underscored parameter named to camel ones
      * @param sourceSqlFileName name of source SQL file
      * @param templateValueConstraintRegex regular expression constraint for template substitution values
      * @param selects list of 'select' queries
      * @param updates list of 'update' queries
      */
     RootTemplateArg(String packageName, String className, String modifier, boolean useIterableJdbcTemplate,
-                    boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, String sourceSqlFileName,
+                    boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, boolean useUnderscoredToCamel, String sourceSqlFileName,
                     String templateValueConstraintRegex, Collection<QueryTemplateArg> selects, Collection<QueryTemplateArg> updates) {
         this.packageName = packageName;
         this.className = className;
@@ -54,6 +56,7 @@ public class RootTemplateArg {
         this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
         this.useBatchInserts = useBatchInserts;
         this.useTemplateStringSubstitution = useTemplateStringSubstitution;
+        this.useUnderscoredToCamel = useUnderscoredToCamel;
         this.sourceSqlFileName = sourceSqlFileName;
         this.templateValueConstraintRegex = templateValueConstraintRegex;
         this.selects = selects;
@@ -119,6 +122,15 @@ public class RootTemplateArg {
      * @return whether to recognize query templates on method generation
      */
     public boolean isUseTemplateStringSubstitution() { return useTemplateStringSubstitution; }
+
+    /**
+     * Whether to convert underscored parameter named to camel ones
+     *
+     * @return whether to convert underscored parameter named to camel ones
+     */
+    public boolean isUseUnderscoredToCamel() {
+        return useUnderscoredToCamel;
+    }
 
     /**
      * Source SQL file name accessor

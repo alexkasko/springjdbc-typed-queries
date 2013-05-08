@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import static freemarker.ext.beans.BeansWrapper.EXPOSE_PROPERTIES_ONLY;
 import static freemarker.template.Configuration.SQUARE_BRACKET_TAG_SYNTAX;
+import static java.lang.Character.toUpperCase;
 import static java.util.Collections.unmodifiableMap;
 import static org.springframework.jdbc.core.namedparam.NamedParamsSqlParser$Accessor.parseParamsNames;
 
@@ -29,6 +30,7 @@ public class CodeGenerator {
     private final boolean useCheckSingleRowUpdates;
     private final boolean useBatchInserts;
     private final boolean useTemplateStringSubstitution;
+    private final boolean useUnderscoredToCamel;
     private final Pattern selectRegex;
     private final Pattern updateRegex;
     private final Pattern templateRegex;
@@ -54,6 +56,7 @@ public class CodeGenerator {
      * @param updateRegex regular expression to use for identifying 'insert', 'update' and 'delete' queries by name
      * @param templateRegex regular expression to recognize query templates by name
      * @param templateValueConstraintRegex regular expression constraint for template substitution values
+     * @param useUnderscoredToCamel whether to convert underscored parameter named to camel ones
      * @param typeIdMap mapping of parameter names postfixes to data types
      * @param freemarkerTemplate freemarker template body
      * @param freemarkerConf freemarker configuration    @throws CodeGeneratorException on any error
@@ -61,8 +64,9 @@ public class CodeGenerator {
     public CodeGenerator(boolean isPublic, boolean useIterableJdbcTemplate, boolean useCheckSingleRowUpdates,
                          boolean useBatchInserts, boolean useTemplateStringSubstitution, String selectRegex,
                          String updateRegex, String templateRegex, String templateValueConstraintRegex,
-                         Map<String, Class<?>> typeIdMap, String freemarkerTemplate,
+                         boolean useUnderscoredToCamel, Map<String, Class<?>> typeIdMap, String freemarkerTemplate,
                          Configuration freemarkerConf) throws CodeGeneratorException {
+        this.useUnderscoredToCamel = useUnderscoredToCamel;
         if(null == selectRegex) throw new CodeGeneratorException("Provided selectRegex is null");
         if(null == updateRegex) throw new CodeGeneratorException("Provided updateRegex is null");
         if(null == templateRegex) throw new CodeGeneratorException("Provided templateRegex is null");
@@ -73,7 +77,7 @@ public class CodeGenerator {
         this.isPublic = isPublic;
         this.useIterableJdbcTemplate = useIterableJdbcTemplate;
         this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
-        this.useBatchInserts = useBatchInserts;;
+        this.useBatchInserts = useBatchInserts;
         this.useTemplateStringSubstitution = useTemplateStringSubstitution;
         this.selectRegex = Pattern.compile(selectRegex);
         this.updateRegex = Pattern.compile(updateRegex);
@@ -134,12 +138,17 @@ public class CodeGenerator {
                         "[" + selectRegex + "] or updateRegex: [" + updateRegex + "]");
         }
         return new RootTemplateArg(packageName, className, modifier, useIterableJdbcTemplate, useCheckSingleRowUpdates,
-                useBatchInserts, useTemplateStringSubstitution, sourceSqlFileName, templateValueConstraintRegex.pattern(),
+                useBatchInserts, useTemplateStringSubstitution, useUnderscoredToCamel, sourceSqlFileName, templateValueConstraintRegex.pattern(),
                 selects, updates);
     }
 
     private Set<ParamTemplateArg> createNamedParams(String sql) {
-        List<String> paramNames = parseParamsNames(sql);
+        List<String> rawParamNames = parseParamsNames(sql);
+        final List<String> paramNames;
+        if(useUnderscoredToCamel) {
+            paramNames = new ArrayList<String>(rawParamNames.size());
+            for(String pa : rawParamNames) paramNames.add(underscoredToCamel(pa));
+        } else paramNames = rawParamNames;
         Set<ParamTemplateArg> args = new LinkedHashSet<ParamTemplateArg>(paramNames.size());
         for (String name : paramNames) {
             args.add(new ParamTemplateArg(name, typeForName(name)));
@@ -155,18 +164,46 @@ public class CodeGenerator {
         return Object.class;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    private static String underscoredToCamel(String underscored) {
+        if(null == underscored || 0 == underscored.length() || !underscored.contains("_")) return underscored;
+        StringBuilder sb = new StringBuilder();
+        boolean usFound = false;
+        for(int i = 0; i< underscored.length(); i++) {
+            char ch = underscored.charAt(i);
+            if('_' == ch) {
+                if(usFound) { // double underscore
+                    sb.append('_');
+                } else {
+                    usFound = true;
+                }
+            } else if (usFound) {
+                sb.append(toUpperCase(ch));
+                usFound = false;
+            } else {
+                sb.append(ch);
+            }
+        }
+        if(usFound) sb.append("_");
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("CodeGenerator");
         sb.append("{isPublic=").append(isPublic);
         sb.append(", useIterableJdbcTemplate=").append(useIterableJdbcTemplate);
+        sb.append(", useCheckSingleRowUpdates=").append(useCheckSingleRowUpdates);
+        sb.append(", useBatchInserts=").append(useBatchInserts);
+        sb.append(", useTemplateStringSubstitution=").append(useTemplateStringSubstitution);
+        sb.append(", useUnderscoredToCamel=").append(useUnderscoredToCamel);
         sb.append(", selectRegex=").append(selectRegex);
         sb.append(", updateRegex=").append(updateRegex);
+        sb.append(", templateRegex=").append(templateRegex);
+        sb.append(", templateValueConstraintRegex=").append(templateValueConstraintRegex);
         sb.append(", typeIdMap=").append(typeIdMap);
+        sb.append(", freemarkerTemplate='").append(freemarkerTemplate).append('\'');
+        sb.append(", freemarkerConf=").append(freemarkerConf);
         sb.append('}');
         return sb.toString();
     }
@@ -189,6 +226,7 @@ public class CodeGenerator {
         private boolean useCheckSingleRowUpdates = false;
         private boolean useBatchInserts = false;
         private boolean useTemplateStringSubstitution = false;
+        private boolean useUnderscoredToCamel = true;
         private String selectRegex = "^select[a-zA-Z][a-zA-Z0-9_$]*$";
         private String updateRegex = "^(?:insert|update|delete|create|drop)[a-zA-Z][a-zA-Z0-9_$]*$";
         private String templateRegex = "^[a-zA-Z0-9_$]*Template$";
@@ -254,6 +292,17 @@ public class CodeGenerator {
          */
         public Builder setUseTemplateStringSubstitution(boolean useTemplateStringSubstitution) {
             this.useTemplateStringSubstitution = useTemplateStringSubstitution;
+            return this;
+        }
+
+        /**
+         * Whether to convert underscored parameter named to camel ones
+         *
+         * @param useUnderscoredToCamel whether to convert underscored parameter named to camel ones
+         * @return builder itself
+         */
+        public Builder setUseUnderscoredToCamel(boolean useUnderscoredToCamel) {
+            this.useUnderscoredToCamel = useUnderscoredToCamel;
             return this;
         }
 
@@ -401,7 +450,7 @@ public class CodeGenerator {
         public CodeGenerator build() {
             return new CodeGenerator(isPublic, useIterableJdbcTemplate, useCheckSingleRowUpdates, useBatchInserts,
                     useTemplateStringSubstitution, selectRegex, updateRegex, templateRegex, templateValueConstraintRegex,
-                    typeIdMap, freemarkerTemplate, freemarkerConf);
+                    useUnderscoredToCamel, typeIdMap, freemarkerTemplate, freemarkerConf);
         }
 
         private static Map<String, Class<?>> defaultTypeIdMap() {

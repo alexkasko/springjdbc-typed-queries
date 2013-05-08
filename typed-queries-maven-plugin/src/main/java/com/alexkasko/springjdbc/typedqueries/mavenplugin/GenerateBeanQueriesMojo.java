@@ -99,6 +99,12 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      */
     private boolean useTemplateStringSubstitution;
     /**
+     * Цhether to convert underscored parameter named to camel ones, true by default
+     *
+     * @parameter expression="${typedqueries.useUnderscoredToCamel}" default-value="true"
+     */
+    private boolean useUnderscoredToCamel;
+    /**
      * Regular expression to use for identifying 'select' queries by name,
      * default: '^select[a-zA-Z][a-zA-Z0-9_$]*$'
      *
@@ -172,6 +178,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             if(useCheckSingleRowUpdates) builder.setUseCheckSingleRowUpdates(true);
             if(useBatchInserts) builder.setUseBatchInserts(true);
             if(useTemplateStringSubstitution) builder.setUseTemplateStringSubstitution(true);
+            if(!useUnderscoredToCamel) builder.setUseTemplateStringSubstitution(false);
             if(null != selectRegex) builder.setSelectRegex(selectRegex);
             if(null != updateRegex) builder.setUpdateRegex(updateRegex);
             if(null != templateRegex) builder.setTemplateRegex(templateRegex);
