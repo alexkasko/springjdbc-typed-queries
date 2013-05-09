@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 [#if useTemplateStringSubstitution]
 import java.util.concurrent.ConcurrentHashMap;
@@ -142,7 +143,7 @@ ${modifier}class ${className} {
 [/#list]
     }
 [/#if]
-[#if query.params?size > 0]
+[#if query.params?size > 1]
 
     /**
      * Interface for "${query.name}" query parameters
@@ -207,6 +208,69 @@ ${modifier}class ${className} {
         String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         SqlParameterSource params = new ${bpspsClass}(paramsBean);
+        return jt.queryForIter(sql, params, mapper);
+    }
+[/#if]
+[#elseif query.params?size == 1]
+[#assign singlpar = query.params[0]]
+
+    /**
+     * Executes "${query.name}" query, maps results using provided mapper and returns them as list
+     *
+     * @param ${singlpar.name} query single parameter
+     * @param mapper row mapper
+     * @param <T> row mapper return type
+     * @return list of mapped objects
+     * @throws DataAccessException on query error
+     */
+    ${modifier}<T> List<T> ${query.name}(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+        String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name}, mapper);
+[#if query.template]
+        String sql = substitute(sqlTemplate, substitutions);
+[/#if]
+        Map<String, Object> params = new HashMap<String, Object>(1);
+        params.put("${singlpar.name}", ${singlpar.name});
+        return jt.query(sql, params, mapper);
+    }
+
+    /**
+     * Executes "${query.name}" query that must return exactly one row
+     * Maps this row using provided mapper and returns it
+     *
+     * @param ${singlpar.name} query single parameter
+     * @param mapper row mapper
+     * @param <T> row mapper return type
+     * @return mapped object
+     * @throws IncorrectResultSizeDataAccessException if not one row returned
+     * @throws DataAccessException on query error
+     */
+    ${modifier}<T> T ${query.name}Single(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+        String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name}, mapper);
+[#if query.template]
+        String sql = substitute(sqlTemplate, substitutions);
+[/#if]
+        Map<String, Object> params = new HashMap<String, Object>(1);
+        params.put("${singlpar.name}", ${singlpar.name});
+        return jt.queryForObject(sql, params, mapper);
+    }
+[#if useIterableJdbcTemplate]
+
+    /**
+     * Executes "${query.name}" query, maps results using provided mapper and returns them as closeable iterator
+     *
+     * @param ${singlpar.name} query single parameter
+     * @param mapper row mapper
+     * @param <T> row mapper return type
+     * @return iterator of mapped objects
+     * @throws DataAccessException on query error
+     */
+    ${modifier}<T> CloseableIterator<T> ${query.name}Iter(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+        String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name}, mapper);
+[#if query.template]
+        String sql = substitute(sqlTemplate, substitutions);
+[/#if]
+        Map<String, Object> params = new HashMap<String, Object>(1);
+        params.put("${singlpar.name}", ${singlpar.name});
         return jt.queryForIter(sql, params, mapper);
     }
 [/#if]
