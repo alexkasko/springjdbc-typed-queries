@@ -25,9 +25,9 @@ Assuming we have file named `com.myapp.foo.Foo$Queries.sql` with SQL queries usi
 
     /** selectSomeDataFromFoo */
     select * from foo
-        where bar = :barName
-        and baz < :bazCount
-        and boo between :booFromDate and boo
+        where bar = :bar_name
+        and baz < :baz_count
+        and boo between :boo_from_date and boo
 
     /** updateFooSetCurrentDate */
     update foo set baz = now()
@@ -40,7 +40,7 @@ Maven configuration (you may use multiple `execution` sections to process multip
             <plugin>
                 <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
                 <artifactId>typed-queries-maven-plugin</artifactId>
-                <version>1.2.1</version>
+                <version>1.3</version>
                 <configuration>
                     <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
                 </configuration>
@@ -56,7 +56,7 @@ Or this, if you are using multiple files:
 
     mvn generate-sources
 
-Generated interface for query parameters:
+Generated interface for query parameters (`under_score` names will be converted to `camelCase` ones):
 
     interface SelectSomeDataFromFoo$Params {
         String getBarName();
@@ -78,6 +78,11 @@ Generated methods:
 To use these methods from your code you should implement parameters interface (`SelectSomeDataFromFoo$Params`,
 it usually may be implemented by existing domain-model objects) and provide a row mapper (
 [springjdbc-constructor-mapper](https://github.com/alexkasko/springjdbc-constructor-mapper) may be used).
+
+For queries with single parameters methods with that concrete parameter will be generated instead of parameter wrapper
+interface:
+
+    <T> T selectSomething(long fooId, RowMapper<T> mapper)
 
 Additional methods may be generated (enabled by plugin config parameters):
  * execute select and return iterator - `useIterableJdbcTemplate` flag
@@ -126,9 +131,9 @@ regenerated and compilation error will be raised. But spring-jdbc parameters par
 information may be written in postfixes ([default postfix`->`type` mapping](http://alexkasko.github.com/springjdbc-typed-queries/javadocs/codegen/com/alexkasko/springjdbc/typedqueries/codegen/CodeGenerator.Builder.html#setTypeIdMap%28java.util.Map%29)):
 
     select * from foo
-        where bar = :barCount
-        and baz = :bazDate
-        and boo in (:booList)
+        where bar = :bar_count
+        and baz = :baz_date
+        and boo in (:boo_list)
 
 will be converted into:
 
@@ -189,11 +194,6 @@ and provide it to `JdbcTemplate`.
 Java class is generated using [FreeMarker](http://freemarker.sourceforge.net/) template engine ([default template](https://github.com/alexkasko/springjdbc-typed-queries/blob/master/typed-queries-codegen/src/main/resources/com/alexkasko/springjdbc/typedqueries/codegen/BeanQueries.ftl)).
 Different template may be provided through plugin configuration. Generated class contains strict checks on runtime query
 map consistency comparing to source SQL file using for generation.
-
-By default generated class and its methods are package-private. If you need to implement query parameter interface by
-the class from different package you need to create in the same package empty public interface extending target one
-and use it instead. Plugin may be configured for generating public class and methods using `isPublic` configuration
-parameter.
 
 ###Iterable extensions for JdbcTemplate
 
@@ -272,14 +272,12 @@ Configuration:
         <useTemplateStringSubstitution>true</useTemplateStringSubstitution>
     </configuration>
 
-Placeholder substitution is done using [StrSubstitutor](http://commons.apache.org/proper/commons-lang/javadocs/api-2.6/org/apache/commons/lang/text/StrSubstitutor.html)
-class, so additional maven dependency should be added:
+Complex placeholder values may cause security problems (SQL injections) so by default values are restricted to `^[a-zA-Z0-9_$]*$` symbols.
+This regular expression should be adjusted in plugin settings, e.g.:
 
-    <dependency>
-        <groupId>commons-lang</groupId>
-        <artifactId>commons-lang</artifactId>
-        <version>2.6</version>
-    </dependency>
+    <configuration>
+        <templateValueConstraintRegex>^[a-zA-Z0-9_$: &lt;&gt;=]*$</templateValueConstraintRegex>
+    </configuration>
 
 Query example:
 
@@ -297,8 +295,80 @@ Usage example:
     List<Foo> foos = qrs.selectFooTemplate(bean, mapper, "tabId", tabId);
 
 If this support for dynamic queries is "not dynamic enough" and you need something like Hibernate Criteria API
-you may get query template string from `*$Queries` class using `queryText` method and use [query-string-builder](https://github.com/alexkasko/query-string-builder)
-library to construct actual query string in runtime.
+you may use [query-string-builder](https://github.com/alexkasko/query-string-builder)
+library to construct actual query string in runtime. Constructed expressions may be used as vararg values.
+Also parameter interface may be generated for all possible parameters of dynamic query using additional placeholder syntax, example:
+
+    /** selectFoo */
+    select * from foo ${where(:surname_string, :age_int)} order by id
+
+`${where(:surname, :salary)}` will be used for parameter interface generation, but will be stripped to
+`${where}` on parameter substitution, so `"where"` literal should be used as substitution key:
+
+    interface Foo$Queries.SelectFoo$Params {
+        String getSurnameString();
+        int getAgeInt();
+    }
+    ...
+    Expression expr = Expressions.where();
+    if(isNotEmpty(paramsObject.getSurname())) expr = expr.and("surname = :surname_string");
+    if(paramsObject.getAge() > 0) expr = expr.and("age = :age_int");
+    List<Foo> = qrs.selectFoo(paramsObject, mapper, "where", expr);
+
+Generated query will all parameters present look like:
+
+    select * from foo where surname = :surname_string and age = :age_int order by id
+
+If all parameters are absent `where` prefix will be omitted:
+
+    select * from foo order by id
+
+###Interfaces for `RowMapper`'s
+
+Interfaces for input query parameters is only the first part of compile-time type safety.
+Second part is the names and types of result set columns. Configuration to enable interface generation
+for result set columns:
+
+    <configuration>
+        <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
+        <generateInterfacesForColumns>true</generateInterfacesForColumns>
+    </configuration>
+
+Plugin will parse column list from SQL query and generate `Column` - interface:
+
+    /** selectFoo */
+    select foo_name, bar_count from baz
+
+    interface SelectFoo$Columns {
+        setFooName(String fooName);
+        setBarCount(long barCount);
+    }
+
+This interface may be used with <a href="http://static.springsource.org/spring/docs/3.1.x/javadoc-api/org/springframework/jdbc/core/BeanPropertyRowMapper.html">BeanPropertyRowMapper</a>
+like this:
+
+    public class FooDomainClass implements Foo$Queries.SelectFoo$Columns {
+        public static RowMapper<FooDomainClass> FOO_MAPPER = new BeanPropertyRowMapper(FooDomainClass.class);
+
+        private String fooName;
+        private long barCount;
+
+        @Override
+        public setFooName(String fooName) {
+            this.fooName = fooName;
+        }
+
+        @Override
+        public setBarCount(long barCount) {
+            this.barCount = barCount;
+        }
+    }
+
+So on query columns change you've got compile-time error.
+
+_Note: in version 1.3 simple hand-written parser is used to parse column aliases from SQL query. Complex
+expressions in column lists (e.g. `case-when`) may be parsed incorrectly. Use parentheses for complex expressions
+and `as` for proper aliases parsing. ANTLR/JavaCC SQL parser may be used in future_
 
 License information
 -------------------
@@ -307,6 +377,14 @@ This project is released under the [Apache License 2.0](http://www.apache.org/li
 
 Changelog
 ---------
+
+**1.3** (2013-05-09)
+
+ * `under_score` to `camelCase` conversion
+ * remove commons-lang dependency
+ * generated classes are public by default
+ * `Column` interfaces for result set columns
+ * queries with single parameters without object wrapper
 
 **1.2.1** (2013-03-24)
 
