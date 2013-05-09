@@ -1,20 +1,15 @@
 package com.alexkasko.springjdbc.typedqueries.codegen;
 
-import junit.framework.Assert;
 import org.junit.Test;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
-import static java.lang.Character.codePointAt;
-import static java.lang.Character.toLowerCase;
-import static java.lang.Character.toUpperCase;
-import static java.util.Locale.ENGLISH;
+import static com.alexkasko.springjdbc.typedqueries.codegen.CodeGenerator.camelToUnderscored;
+import static com.alexkasko.springjdbc.typedqueries.codegen.CodeGenerator.parseColumnNames;
+import static com.alexkasko.springjdbc.typedqueries.codegen.CodeGenerator.underscoredToCamel;
 import static junit.framework.Assert.assertEquals;
 
 /**
@@ -32,10 +27,28 @@ public class CodeGeneratorTest {
         queries.put("deleteTestStuff", "foo");
 //        Writer out = new OutputStreamWriter(System.out);
         Writer out = new OutputStreamWriter(new ByteArrayOutputStream());
-        CodeGenerator.builder().build().generate(queries, "foo.bar.baz.FooBar", "nope.sql",  out);
+        CodeGenerator.builder().build().generate(queries, "foo.bar.baz.FooBar", "nope.sql", out);
     }
 
-//    @Test
+    @Test
+    public void testColumns() {
+        List<String> cols = parseColumnNames("select" +
+                " total_foo.foo_a as foo,\n" +
+                " bar,\n" +
+                " coalesce(bazbaz.total_count,0) as baz,\n" +
+                " (select foo from (select foo1 from dual)) as boo\n" +
+                "from foo_bar_baz_boo left join dual");
+        assertEquals("Size fail", 4, cols.size());
+        assertEquals("Colname fail", "foo", cols.get(0));
+        assertEquals("Colname fail", "bar", cols.get(1));
+        assertEquals("Colname fail", "baz", cols.get(2));
+        assertEquals("Colname fail", "boo", cols.get(3));
+        List<String> c1 = parseColumnNames("select report_oid from sentinel_tasks\n" +
+                "    where id = :taskId");
+        System.out.println(c1);
+    }
+
+    @Test
     public void testUnderscoreToCamel() {
         assertEquals(null, underscoredToCamel(null));
         assertEquals("", underscoredToCamel(""));
@@ -50,7 +63,7 @@ public class CodeGeneratorTest {
         assertEquals("FooBar", underscoredToCamel("Foo_Bar"));
     }
 
-//    @Test
+    @Test
     public void testCamelToUnderscore() {
         assertEquals(null, camelToUnderscored(null));
         assertEquals("", camelToUnderscored(""));
@@ -58,143 +71,5 @@ public class CodeGeneratorTest {
         assertEquals("foo_bar", camelToUnderscored("fooBar"));
         assertEquals("Foo_bar", camelToUnderscored("FooBar"));
         assertEquals("foo__bar", camelToUnderscored("foo_Bar"));
-    }
-
-    private static String underscoredToCamel(String underscored) {
-        if(null == underscored || 0 == underscored.length() || !underscored.contains("_")) return underscored;
-        StringBuilder sb = new StringBuilder();
-        boolean usFound = false;
-        for(int i = 0; i< underscored.length(); i++) {
-            char ch = underscored.charAt(i);
-            if('_' == ch) {
-                if(usFound) { // double underscore
-                    sb.append('_');
-                } else {
-                    usFound = true;
-                }
-            } else if (usFound) {
-                sb.append(toUpperCase(ch));
-                usFound = false;
-            } else {
-                sb.append(ch);
-            }
-        }
-        if(usFound) sb.append("_");
-        return sb.toString();
-    }
-
-    private static String camelToUnderscored(String camel) {
-        if(null == camel || camel.length() < 2) return camel;
-        boolean hasUpper = false;
-        for (int i = 1; i < camel.length(); i++) {
-            char ch = camel.charAt(i);
-            if(ch == Character.toUpperCase(ch)) {
-                hasUpper = true;
-                break;
-            }
-        }
-        if(!hasUpper) return camel;
-        StringBuilder sb = new StringBuilder();
-        sb.append(camel.charAt(0));
-        for (int i = 1; i < camel.length(); i++) {
-            char ch = camel.charAt(i);
-            char lower = toLowerCase(ch);
-            if(ch == toUpperCase(ch) && ch != lower) {
-                sb.append("_");
-                sb.append(lower);
-            } else {
-                sb.append(ch);
-            }
-        }
-        return sb.toString();
-    }
-
-    private static class UnderscoredBeanPropertySqlParameterSource extends BeanPropertySqlParameterSource {
-
-        /**
-         * Create a new BeanPropertySqlParameterSource for the given bean.
-         *
-         * @param object the bean instance to wrap
-         */
-        public UnderscoredBeanPropertySqlParameterSource(Object object) {
-            super(object);
-        }
-
-        /**
-         * Determine whether there is a value for the specified named parameter.
-         * @param paramName the name of the parameter
-         * @return whether there is a value defined
-         */
-        @Override
-        public boolean hasValue(String paramName) {
-            return super.hasValue(underscoredToCamel(paramName));
-        }
-
-        /**
-       	 * Return the parameter value for the requested named parameter.
-       	 * @param paramName the name of the parameter
-       	 * @return the value of the specified parameter
-       	 * @throws IllegalArgumentException if there is no value for the requested parameter
-       	 */
-        @Override
-        public Object getValue(String paramName) throws IllegalArgumentException {
-            return super.getValue(underscoredToCamel(paramName));
-        }
-
-
-        /**
-       	 * Provide access to the property names of the wrapped bean.
-       	 * Uses support provided in the {@link org.springframework.beans.PropertyAccessor} interface.
-       	 * @return an array containing all the known property names
-       	 */
-        @Override
-        public String[] getReadablePropertyNames() {
-            String[] camel = super.getReadablePropertyNames();
-            String[] undercored = new String[camel.length];
-            for (int i = 0; i < camel.length; i++) {
-                undercored[i] = camelToUnderscored(camel[i]);
-            }
-            return undercored;
-        }
-
-        /**
-       	 * Derives a default SQL type from the corresponding property type.
-       	 * @see org.springframework.jdbc.core.StatementCreatorUtils#javaTypeToSqlParameterType
-       	 */
-        @Override
-        public int getSqlType(String paramName) {
-            return super.getSqlType(underscoredToCamel(paramName));
-        }
-
-        /**
-       	 * Register a SQL type for the given parameter.
-       	 * @param paramName the name of the parameter
-       	 * @param sqlType the SQL type of the parameter
-       	 */
-        @Override
-        public void registerSqlType(String paramName, int sqlType) {
-            super.registerSqlType(underscoredToCamel(paramName), sqlType);
-        }
-
-        /**
-       	 * Register a SQL type for the given parameter.
-       	 * @param paramName the name of the parameter
-       	 * @param typeName the type name of the parameter
-       	 */
-        @Override
-        public void registerTypeName(String paramName, String typeName) {
-            super.registerTypeName(underscoredToCamel(paramName), typeName);
-        }
-
-        /**
-       	 * Return the type name for the given parameter, if registered.
-       	 * @param paramName the name of the parameter
-       	 * @return the type name of the parameter,
-       	 * or <code>null</code> if not registered
-       	 */
-        @Override
-        public String getTypeName(String paramName) {
-            return super.getTypeName(underscoredToCamel(paramName));
-        }
     }
 }

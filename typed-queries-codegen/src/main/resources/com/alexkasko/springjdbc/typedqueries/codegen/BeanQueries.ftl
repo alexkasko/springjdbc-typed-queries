@@ -131,6 +131,17 @@ ${modifier}class ${className} {
 [#list selects as query]
 
     // ${query.name} methods
+[#if generateInterfacesForColumns && query.columns?size > 1]
+
+    /**
+     * Interface for "${query.name}" result columns
+     */
+    ${modifier}interface ${query.name?cap_first}$Columns {
+[#list query.columns as col]
+        void set${col.name?cap_first}(${col.type} ${col.name});
+[/#list]
+    }
+[/#if]
 [#if query.params?size > 0]
 
     /**

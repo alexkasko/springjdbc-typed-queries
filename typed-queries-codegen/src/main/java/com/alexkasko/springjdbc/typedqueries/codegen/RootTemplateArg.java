@@ -21,6 +21,7 @@ public class RootTemplateArg {
     private final boolean useBatchInserts;
     private final boolean useTemplateStringSubstitution;
     private final boolean useUnderscoredToCamel;
+    private final boolean generateInterfacesForColumns;
     private final String sourceSqlFileName;
     private final String templateValueConstraintRegex;
     private final Collection<QueryTemplateArg> selects;
@@ -41,13 +42,14 @@ public class RootTemplateArg {
 *                        for the contents of the specified iterator in batch mode
      * @param useTemplateStringSubstitution whether to recognize query templates on method generation
      * @param useUnderscoredToCamel whether to convert underscored parameter named to camel ones
+     * @param generateInterfacesForColumns whether to generate interfaces for columns
      * @param sourceSqlFileName name of source SQL file
      * @param templateValueConstraintRegex regular expression constraint for template substitution values
      * @param selects list of 'select' queries
      * @param updates list of 'update' queries
      */
     RootTemplateArg(String packageName, String className, String modifier, boolean useIterableJdbcTemplate,
-                    boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, boolean useUnderscoredToCamel, String sourceSqlFileName,
+                    boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, boolean useUnderscoredToCamel, boolean generateInterfacesForColumns, String sourceSqlFileName,
                     String templateValueConstraintRegex, Collection<QueryTemplateArg> selects, Collection<QueryTemplateArg> updates) {
         this.packageName = packageName;
         this.className = className;
@@ -57,6 +59,7 @@ public class RootTemplateArg {
         this.useBatchInserts = useBatchInserts;
         this.useTemplateStringSubstitution = useTemplateStringSubstitution;
         this.useUnderscoredToCamel = useUnderscoredToCamel;
+        this.generateInterfacesForColumns = generateInterfacesForColumns;
         this.sourceSqlFileName = sourceSqlFileName;
         this.templateValueConstraintRegex = templateValueConstraintRegex;
         this.selects = selects;
@@ -130,6 +133,15 @@ public class RootTemplateArg {
      */
     public boolean isUseUnderscoredToCamel() {
         return useUnderscoredToCamel;
+    }
+
+    /**
+     * Whether to generate interfaces for columns
+     *
+     * @return whether to generate interfaces for columns
+     */
+    public boolean isGenerateInterfacesForColumns() {
+        return generateInterfacesForColumns;
     }
 
     /**
