@@ -334,7 +334,7 @@ ${modifier}class ${className} {
 [#list updates as query]
 
     // ${query.name} methods
-[#if query.params?size > 0]
+[#if query.params?size > 1]
 
     /**
      * Interface for "${query.name}" query parameters
@@ -380,6 +380,73 @@ ${modifier}class ${className} {
     }
 [/#if]
 [#if useBatchInserts]
+
+    /**
+     * Executes "${query.name}" query in batch mode
+     *
+     * @param paramsIter parameters iterator
+     * @param batchSize single batch size
+     * @return count of updated rows
+     * @throws DataAccessException on query error
+     */
+    ${modifier}int ${query.name}Batch(Iterator<? extends ${query.name?cap_first}$Params> paramsIter, int batchSize[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+        if(batchSize <= 0) throw new QueryException("Provided batchSize must be positive: [" + batchSize + "]");
+        String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsIter);
+[#if query.template]
+        String sql = substitute(sqlTemplate, substitutions);
+[/#if]
+        return batchUpdate(sql, paramsIter, batchSize);
+    }
+[/#if]
+[#elseif query.params?size == 1]
+[#assign singlpar = query.params[0]]
+
+    /**
+     * Executes "${query.name}" query
+     *
+     * @param paramsBean parameters object
+     * @return count of updated rows
+     * @throws DataAccessException on query error
+     */
+    ${modifier}int ${query.name}(${singlpar.type} ${singlpar.name}[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+        String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name});
+[#if query.template]
+        String sql = substitute(sqlTemplate, substitutions);
+[/#if]
+        Map<String, Object> params = new HashMap<String, Object>(1);
+        params.put("${singlpar.name}", ${singlpar.name});
+        return jt.update(sql, params);
+    }
+[#if useCheckSingleRowUpdates]
+
+    /**
+     * Executes "${query.name}" query and checks that exactly one row was updated
+     *
+     * @param paramsBean parameters object
+     * @throws IncorrectResultSizeDataAccessException if not one row was updated
+     * @throws DataAccessException on query error
+     */
+    ${modifier}void ${query.name}Single(${singlpar.type} ${singlpar.name}[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+        String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name});
+[#if query.template]
+        String sql = substitute(sqlTemplate, substitutions);
+[/#if]
+        Map<String, Object> params = new HashMap<String, Object>(1);
+        params.put("${singlpar.name}", ${singlpar.name});
+        int updatedRowsCount = jt.update(sql, params);
+        checkSingleRowUpdated(updatedRowsCount);
+    }
+[/#if]
+[#if useBatchInserts]
+
+    /**
+     * Interface for "${query.name}" query parameters
+     */
+    ${modifier}interface ${query.name?cap_first}$Params {
+[#list query.params as param]
+        ${param.type} get${param.name?cap_first}();
+[/#list]
+    }
 
     /**
      * Executes "${query.name}" query in batch mode
@@ -566,7 +633,7 @@ ${modifier}class ${className} {
             Pattern existed = substituteMap.get(keystr);
             final Pattern regex;
             if(null == existed) {
-                regex = Pattern.compile(SUBSTITUTE_KEY_PATTERN_PREFIX + keystr + SUBSTITUTE_KEY_PATTERN_POSTFIX);
+                regex = Pattern.compile(SUBSTITUTE_KEY_PATTERN_PREFIX + keystr + SUBSTITUTE_KEY_PATTERN_POSTFIX, Pattern.DOTALL);
                 substituteMap.put(keystr, regex);
             } else regex = existed;
             Matcher ma = regex.matcher(sql);

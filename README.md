@@ -40,7 +40,7 @@ Maven configuration (you may use multiple `execution` sections to process multip
             <plugin>
                 <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
                 <artifactId>typed-queries-maven-plugin</artifactId>
-                <version>1.3</version>
+                <version>1.3.1</version>
                 <configuration>
                     <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
                 </configuration>
@@ -377,6 +377,10 @@ This project is released under the [Apache License 2.0](http://www.apache.org/li
 
 Changelog
 ---------
+
+**1.3.1** (2013-05-09)
+
+ * select/update queries with single parameters without object wrapper
 
 **1.3** (2013-05-09)
 
