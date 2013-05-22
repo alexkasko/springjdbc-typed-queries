@@ -230,6 +230,9 @@ ${modifier}class ${className} {
 [/#if]
         Map<String, Object> params = new HashMap<String, Object>(1);
         params.put("${singlpar.name}", ${singlpar.name});
+[#if useUnderscoredToCamel]
+        params.put(camelToUnderscored("${singlpar.name}"), ${singlpar.name});
+[/#if]
         return jt.query(sql, params, mapper);
     }
 
@@ -251,6 +254,9 @@ ${modifier}class ${className} {
 [/#if]
         Map<String, Object> params = new HashMap<String, Object>(1);
         params.put("${singlpar.name}", ${singlpar.name});
+[#if useUnderscoredToCamel]
+        params.put(camelToUnderscored("${singlpar.name}"), ${singlpar.name});
+[/#if]
         return jt.queryForObject(sql, params, mapper);
     }
 [#if useIterableJdbcTemplate]
@@ -271,6 +277,9 @@ ${modifier}class ${className} {
 [/#if]
         Map<String, Object> params = new HashMap<String, Object>(1);
         params.put("${singlpar.name}", ${singlpar.name});
+[#if useUnderscoredToCamel]
+        params.put(camelToUnderscored("${singlpar.name}"), ${singlpar.name});
+[/#if]
         return jt.queryForIter(sql, params, mapper);
     }
 [/#if]
@@ -415,6 +424,9 @@ ${modifier}class ${className} {
 [/#if]
         Map<String, Object> params = new HashMap<String, Object>(1);
         params.put("${singlpar.name}", ${singlpar.name});
+[#if useUnderscoredToCamel]
+        params.put(camelToUnderscored("${singlpar.name}"), ${singlpar.name});
+[/#if]
         return jt.update(sql, params);
     }
 [#if useCheckSingleRowUpdates]
@@ -433,6 +445,9 @@ ${modifier}class ${className} {
 [/#if]
         Map<String, Object> params = new HashMap<String, Object>(1);
         params.put("${singlpar.name}", ${singlpar.name});
+[#if useUnderscoredToCamel]
+        params.put(camelToUnderscored("${singlpar.name}"), ${singlpar.name});
+[/#if]
         int updatedRowsCount = jt.update(sql, params);
         checkSingleRowUpdated(updatedRowsCount);
     }
@@ -646,6 +661,55 @@ ${modifier}class ${className} {
 [/#if]
 [#if useUnderscoredToCamel]
 
+    private static String underscoredToCamel(String underscored) {
+        if(null == underscored || 0 == underscored.length() || !underscored.contains("_")) return underscored;
+        StringBuilder sb = new StringBuilder();
+        boolean usFound = false;
+        for(int i = 0; i< underscored.length(); i++) {
+            char ch = underscored.charAt(i);
+            if('_' == ch) {
+                if(usFound) { // double underscore
+                    sb.append('_');
+                } else {
+                    usFound = true;
+                }
+            } else if (usFound) {
+                sb.append(toUpperCase(ch));
+                usFound = false;
+            } else {
+                sb.append(ch);
+            }
+        }
+        if(usFound) sb.append("_");
+        return sb.toString();
+    }
+
+    private static String camelToUnderscored(String camel) {
+        if(null == camel || camel.length() < 2) return camel;
+        boolean hasUpper = false;
+        for (int i = 1; i < camel.length(); i++) {
+            char ch = camel.charAt(i);
+            if(ch == Character.toUpperCase(ch)) {
+                hasUpper = true;
+                break;
+            }
+        }
+        if(!hasUpper) return camel;
+        StringBuilder sb = new StringBuilder();
+        sb.append(camel.charAt(0));
+        for (int i = 1; i < camel.length(); i++) {
+            char ch = camel.charAt(i);
+            char lower = toLowerCase(ch);
+            if(ch == toUpperCase(ch) && ch != lower) {
+                sb.append("_");
+                sb.append(lower);
+            } else {
+                sb.append(ch);
+            }
+        }
+        return sb.toString();
+    }
+
     /**
      * {@code BeanPropertySqlParameterSource} extension that maps camelCase properties to under_scored parameters
      */
@@ -690,11 +754,11 @@ ${modifier}class ${className} {
         @Override
         public String[] getReadablePropertyNames() {
             String[] camel = super.getReadablePropertyNames();
-            String[] undercored = new String[camel.length];
+            String[] underscored = new String[camel.length];
             for (int i = 0; i < camel.length; i++) {
-                undercored[i] = camelToUnderscored(camel[i]);
+                underscored[i] = camelToUnderscored(camel[i]);
             }
-            return undercored;
+            return underscored;
         }
 
         /**
@@ -735,55 +799,6 @@ ${modifier}class ${className} {
         @Override
         public String getTypeName(String paramName) {
             return super.getTypeName(underscoredToCamel(paramName));
-        }
-
-        private static String underscoredToCamel(String underscored) {
-            if(null == underscored || 0 == underscored.length() || !underscored.contains("_")) return underscored;
-            StringBuilder sb = new StringBuilder();
-            boolean usFound = false;
-            for(int i = 0; i< underscored.length(); i++) {
-                char ch = underscored.charAt(i);
-                if('_' == ch) {
-                    if(usFound) { // double underscore
-                        sb.append('_');
-                    } else {
-                        usFound = true;
-                    }
-                } else if (usFound) {
-                    sb.append(toUpperCase(ch));
-                    usFound = false;
-                } else {
-                    sb.append(ch);
-                }
-            }
-            if(usFound) sb.append("_");
-            return sb.toString();
-        }
-
-        private static String camelToUnderscored(String camel) {
-            if(null == camel || camel.length() < 2) return camel;
-            boolean hasUpper = false;
-            for (int i = 1; i < camel.length(); i++) {
-                char ch = camel.charAt(i);
-                if(ch == Character.toUpperCase(ch)) {
-                    hasUpper = true;
-                    break;
-                }
-            }
-            if(!hasUpper) return camel;
-            StringBuilder sb = new StringBuilder();
-            sb.append(camel.charAt(0));
-            for (int i = 1; i < camel.length(); i++) {
-                char ch = camel.charAt(i);
-                char lower = toLowerCase(ch);
-                if(ch == toUpperCase(ch) && ch != lower) {
-                    sb.append("_");
-                    sb.append(lower);
-                } else {
-                    sb.append(ch);
-                }
-            }
-            return sb.toString();
         }
     }
 [/#if]
