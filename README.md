@@ -90,7 +90,7 @@ Additional methods may be generated (enabled by plugin config parameters):
  * execute update and check that exactly one row was updated - `useCheckSingleRowUpdates` flag
  * execute inserts in batch mode (consuming paramters iterator) - `useBatchInserts` flag
  * substitute placeholders (not query parameters) in SQL string before execution - `useTemplateStringSubstitution` flag
- * generate additional interfaces for returning column sets to use with `RowMapper` implementation = `generateInterfacesForColumns`
+ * generate additional interfaces for returning column sets to use with `RowMapper` implementation - `generateInterfacesForColumns` flag
 
 See additional information about these extensions below.
 
@@ -254,19 +254,20 @@ Template query in SQL file:
     /** selectFooTemplate */
     select * from foo_${postfix}
         where bar1 = :bar1_int
-        and bar1 = :bar2_string
+        and bar2 = :bar2_string
 
 Usage:
 
     List<CloseableIterable<Foo>> iters = new ArrayList<CloseableIterable<Foo>>();
     try {
         for(String postfix : getMyPostfixes()) {
-            iters.add(qrs.selectFooTemplateIterable(params, mapper, "postfix", postfix))
-            Iterable<Foo> united = Iterables.concat(iters);
-            // use united results iterable as a result of "union all" query
-            for(Foo foo : united) {
-                ...
-            }
+            CloseableIterable<Foo> ci = qrs.selectFooTemplateIterable(params, mapper, "postfix", postfix);
+            iters.add(ci);
+        }
+        Iterable<Foo> united = Iterables.concat(iters);
+        // use united results iterable the same way as a result of "union all" query
+        for(Foo foo : united) {
+            ...
         }
     } finally {
         for(CloseableIterable<Foo> ci : iters) {
