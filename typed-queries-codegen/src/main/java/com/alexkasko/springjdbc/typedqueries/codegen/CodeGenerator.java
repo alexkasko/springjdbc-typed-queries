@@ -36,6 +36,7 @@ public class CodeGenerator {
 
     private final boolean isPublic;
     private final boolean useIterableJdbcTemplate;
+    private final boolean useCloseableIterables;
     private final boolean useCheckSingleRowUpdates;
     private final boolean useBatchInserts;
     private final boolean useTemplateStringSubstitution;
@@ -57,28 +58,29 @@ public class CodeGenerator {
      * @param useIterableJdbcTemplate whether to use iterable jdbc template extensions from this
      *                                project (https://github.com/alexkasko/springjdbc-iterable)
      * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
-*                                 only single row was changed on update
+     *                                 only single row was changed on update
      * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
-*                        takes {@link java.util.Iterator} of parameters and execute inserts
-*                        for the contents of the specified iterator in batch mode
+     *                        takes {@link java.util.Iterator} of parameters and execute inserts
+     *                        for the contents of the specified iterator in batch mode
      * @param useTemplateStringSubstitution whether to recognize query templates on method generation
      * @param selectRegex regular expression to use for identifying 'select' queries by name
      * @param updateRegex regular expression to use for identifying 'insert', 'update' and 'delete' queries by name
      * @param templateRegex regular expression to recognize query templates by name
      * @param templateValueConstraintRegex regular expression constraint for template substitution values
+     * @param useCloseableIterables whether to generate {@code CloseableIterable} methods
      * @param useUnderscoredToCamel whether to convert underscored parameter named to camel ones
      * @param generateInterfacesForColumns whether to generate interfaces for columns
      * @param typeIdMap mapping of parameter names postfixes to data types
      * @param freemarkerTemplate freemarker template body
      * @param freemarkerConf freemarker configuration    @throws CodeGeneratorException on any error
      */
-    public CodeGenerator(boolean isPublic, boolean useIterableJdbcTemplate, boolean useCheckSingleRowUpdates,
-                         boolean useBatchInserts, boolean useTemplateStringSubstitution, String selectRegex,
+    public CodeGenerator(boolean isPublic, boolean useIterableJdbcTemplate, boolean useCloseableIterables,
+                         boolean useCheckSingleRowUpdates, boolean useBatchInserts,
+                         boolean useTemplateStringSubstitution, String selectRegex,
                          String updateRegex, String templateRegex, String templateValueConstraintRegex,
-                         boolean useUnderscoredToCamel, boolean generateInterfacesForColumns, Map<String, Class<?>> typeIdMap, String freemarkerTemplate,
+                         boolean useUnderscoredToCamel, boolean generateInterfacesForColumns,
+                         Map<String, Class<?>> typeIdMap, String freemarkerTemplate,
                          Configuration freemarkerConf) throws CodeGeneratorException {
-        this.useUnderscoredToCamel = useUnderscoredToCamel;
-        this.generateInterfacesForColumns = generateInterfacesForColumns;
         if(null == selectRegex) throw new CodeGeneratorException("Provided selectRegex is null");
         if(null == updateRegex) throw new CodeGeneratorException("Provided updateRegex is null");
         if(null == templateRegex) throw new CodeGeneratorException("Provided templateRegex is null");
@@ -88,9 +90,12 @@ public class CodeGenerator {
         if(null == freemarkerConf) throw new CodeGeneratorException("Provided freemarkerConf is null");
         this.isPublic = isPublic;
         this.useIterableJdbcTemplate = useIterableJdbcTemplate;
+        this.useCloseableIterables = useCloseableIterables;
         this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
         this.useBatchInserts = useBatchInserts;
         this.useTemplateStringSubstitution = useTemplateStringSubstitution;
+        this.useUnderscoredToCamel = useUnderscoredToCamel;
+        this.generateInterfacesForColumns = generateInterfacesForColumns;
         this.selectRegex = Pattern.compile(selectRegex);
         this.updateRegex = Pattern.compile(updateRegex);
         this.templateRegex = Pattern.compile(templateRegex);
@@ -152,7 +157,7 @@ public class CodeGenerator {
             else throw new CodeGeneratorException("Invalid query name: [" + name + "], names must match select regex: " +
                         "[" + selectRegex + "] or updateRegex: [" + updateRegex + "]");
         }
-        return new RootTemplateArg(packageName, className, modifier, useIterableJdbcTemplate, useCheckSingleRowUpdates,
+        return new RootTemplateArg(packageName, className, modifier, useIterableJdbcTemplate, useCloseableIterables, useCheckSingleRowUpdates,
                 useBatchInserts, useTemplateStringSubstitution, useUnderscoredToCamel, generateInterfacesForColumns, sourceSqlFileName, templateValueConstraintRegex.pattern(),
                 selects, updates);
     }
@@ -292,6 +297,7 @@ public class CodeGenerator {
     public static class Builder {
         private boolean isPublic = true;
         private boolean useIterableJdbcTemplate = false;
+        private boolean useCloseableIterables = false;
         private boolean useCheckSingleRowUpdates = false;
         private boolean useBatchInserts = false;
         private boolean useTemplateStringSubstitution = false;
@@ -326,6 +332,15 @@ public class CodeGenerator {
         public Builder setUseIterableJdbcTemplate(boolean useIterableJdbcTemplate) {
             this.useIterableJdbcTemplate = useIterableJdbcTemplate;
             return this;
+        }
+
+        /**
+         * Whether to generate {@code CloseableIterable} methods, false by default
+         *
+         * @param useCloseableIterables whether to generate {@code CloseableIterable} methods
+         */
+        public void setUseCloseableIterables(boolean useCloseableIterables) {
+            this.useCloseableIterables = useCloseableIterables;
         }
 
         /**
@@ -527,9 +542,10 @@ public class CodeGenerator {
          * @return configured {@link CodeGenerator} instance
          */
         public CodeGenerator build() {
-            return new CodeGenerator(isPublic, useIterableJdbcTemplate, useCheckSingleRowUpdates, useBatchInserts,
-                    useTemplateStringSubstitution, selectRegex, updateRegex, templateRegex, templateValueConstraintRegex,
-                    useUnderscoredToCamel, generateInterfacesForColumns, typeIdMap, freemarkerTemplate, freemarkerConf);
+            return new CodeGenerator(isPublic, useIterableJdbcTemplate, useCloseableIterables, useCheckSingleRowUpdates,
+                    useBatchInserts, useTemplateStringSubstitution, selectRegex, updateRegex, templateRegex,
+                    templateValueConstraintRegex, useUnderscoredToCamel, generateInterfacesForColumns, typeIdMap,
+                    freemarkerTemplate, freemarkerConf);
         }
 
         private static Map<String, Class<?>> defaultTypeIdMap() {

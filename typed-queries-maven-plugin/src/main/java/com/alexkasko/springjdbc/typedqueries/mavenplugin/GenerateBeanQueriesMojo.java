@@ -78,6 +78,14 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      */
     private boolean useIterableJdbcTemplate;
     /**
+     * Whether to generate {@code CloseableIterable} methods,
+     * requires {@code useIterableJdbcTemplate} option,
+     * false by default
+     *
+     * @parameter expression="${typedqueries.useCloseableIterables}"
+     */
+    private boolean useCloseableIterables;
+    /**
      * Whether to generate additional update methods, those check that
      * only single row was changed on update, false by default
      *
@@ -182,6 +190,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             CodeGenerator.Builder builder = CodeGenerator.builder();
             if(!isPublic) builder.setPublic(false);
             if(useIterableJdbcTemplate) builder.setUseIterableJdbcTemplate(true);
+            if(useCloseableIterables) builder.setUseCloseableIterables(true);
             if(useCheckSingleRowUpdates) builder.setUseCheckSingleRowUpdates(true);
             if(useBatchInserts) builder.setUseBatchInserts(true);
             if(useTemplateStringSubstitution) builder.setUseTemplateStringSubstitution(true);

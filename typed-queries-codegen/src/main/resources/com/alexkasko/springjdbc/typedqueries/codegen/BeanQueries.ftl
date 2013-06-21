@@ -6,6 +6,9 @@ package ${packageName};
 [#if useIterableJdbcTemplate]
 import com.alexkasko.springjdbc.iterable.IterableNamedParameterJdbcTemplate;
 import com.alexkasko.springjdbc.iterable.CloseableIterator;
+[#if useCloseableIterables]
+import com.alexkasko.springjdbc.iterable.CloseableIterable;
+[/#if]
 [/#if]
 import org.springframework.dao.DataAccessException;
 [#if useCheckSingleRowUpdates]
@@ -202,7 +205,7 @@ ${modifier}class ${className} {
      * @return iterator of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> CloseableIterator<T> ${query.name}Iter(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<T> CloseableIterator<T> ${query.name}Iterator(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -210,6 +213,25 @@ ${modifier}class ${className} {
         SqlParameterSource params = new ${bpspsClass}(paramsBean);
         return jt.queryForIter(sql, params, mapper);
     }
+[#if useCloseableIterables]
+
+    /**
+     * Returns closable iterable for "${query.name}" query
+     *
+     * @param paramsBean parameters object
+     * @param mapper row mapper
+     * @param <T> row mapper return type
+     * @return closeable iterable for "${query.name}" query
+     */
+    ${modifier}<T> CloseableIterable<T> ${query.name}Iterable(final ${query.name?cap_first}$Params paramsBean, final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
+        return new CloseableIterable<T>() {
+            @Override
+            protected CloseableIterator<T> closeableIterator() {
+                return ${query.name}Iterator(paramsBean, mapper[#if query.template], substitutions[/#if]);
+            }
+        };
+    }
+[/#if]
 [/#if]
 [#elseif query.params?size == 1]
 [#assign singlpar = query.params[0]]
@@ -270,7 +292,7 @@ ${modifier}class ${className} {
      * @return iterator of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> CloseableIterator<T> ${query.name}Iter(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<T> CloseableIterator<T> ${query.name}Iterator(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name}, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -282,6 +304,25 @@ ${modifier}class ${className} {
 [/#if]
         return jt.queryForIter(sql, params, mapper);
     }
+[#if useCloseableIterables]
+
+    /**
+     * Returns closable iterable for "${query.name}" query
+     *
+     * @param ${singlpar.name} query single parameter
+     * @param mapper row mapper
+     * @param <T> row mapper return type
+     * @return closeable iterable for "${query.name}" query
+     */
+    ${modifier}<T> CloseableIterable<T> ${query.name}Iterable(final ${singlpar.type} ${singlpar.name}, final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
+        return new CloseableIterable<T>() {
+            @Override
+            protected CloseableIterator<T> closeableIterator() {
+                return ${query.name}Iterator(${singlpar.name}, mapper[#if query.template], substitutions[/#if]);
+            }
+        };
+    }
+[/#if]
 [/#if]
 [#else]
 
@@ -328,13 +369,31 @@ ${modifier}class ${className} {
      * @return iterator of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> CloseableIterator<T> ${query.name}Iter(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<T> CloseableIterator<T> ${query.name}Iterator(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "", mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
 [/#if]
         return jt.getIterableJdbcOperations().queryForIter(sql, mapper);
     }
+[#if useCloseableIterables]
+
+    /**
+     * Returns closable iterable for "${query.name}" query
+     *
+     * @param mapper row mapper
+     * @param <T> row mapper return type
+     * @return closeable iterable for "${query.name}" query
+     */
+    ${modifier}<T> CloseableIterable<T> ${query.name}Iterable(final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
+        return new CloseableIterable<T>() {
+            @Override
+            protected CloseableIterator<T> closeableIterator() {
+                return ${query.name}Iterator(mapper[#if query.template], substitutions[/#if]);
+            }
+        };
+    }
+[/#if]
 [/#if]
 [/#if]
 [/#list]
@@ -413,7 +472,7 @@ ${modifier}class ${className} {
     /**
      * Executes "${query.name}" query
      *
-     * @param paramsBean parameters object
+     * @param ${singlpar.name} query single parameter
      * @return count of updated rows
      * @throws DataAccessException on query error
      */
@@ -434,7 +493,7 @@ ${modifier}class ${className} {
     /**
      * Executes "${query.name}" query and checks that exactly one row was updated
      *
-     * @param paramsBean parameters object
+     * @param ${singlpar.name} query single parameter
      * @throws IncorrectResultSizeDataAccessException if not one row was updated
      * @throws DataAccessException on query error
      */

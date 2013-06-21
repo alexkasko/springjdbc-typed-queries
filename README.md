@@ -40,7 +40,7 @@ Maven configuration (you may use multiple `execution` sections to process multip
             <plugin>
                 <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
                 <artifactId>typed-queries-maven-plugin</artifactId>
-                <version>1.3.2</version>
+                <version>1.4</version>
                 <configuration>
                     <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
                 </configuration>
@@ -86,9 +86,11 @@ interface:
 
 Additional methods may be generated (enabled by plugin config parameters):
  * execute select and return iterator - `useIterableJdbcTemplate` flag
+ * return iterable that may be used to execute select and return iterator later - `useCloseableIterables` flag
  * execute update and check that exactly one row was updated - `useCheckSingleRowUpdates` flag
  * execute inserts in batch mode (consuming paramters iterator) - `useBatchInserts` flag
  * substitute placeholders (not query parameters) in SQL string before execution - `useTemplateStringSubstitution` flag
+ * generate additional interfaces for returning column sets to use with `RowMapper` implementation = `generateInterfacesForColumns`
 
 See additional information about these extensions below.
 
@@ -213,12 +215,64 @@ as constructor argument and additional dependency (from maven central):
     <dependency>
         <groupId>com.alexkasko.springjdbc</groupId>
         <artifactId>springjdbc-iterable</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
     </dependency>
 
 Additional generated method:
 
-    <T> CloseableIterator<T> selectFooIter(SelectFoo$Params paramsBean, RowMapper<T> mapper)
+    <T> CloseableIterator<T> selectFooIterator(SelectFoo$Params paramsBean, RowMapper<T> mapper)
+
+###Using closeable iterables instead of iterators
+
+If you are using iterable extensions for JdbcTemplate you may want to iterate over results of multiple queries
+(instead of one `union all` query that you may not want to use for some reason). The naive method is to open multiple
+query iterators and concatenate them into single iterator using [guavas Iterators.concat(...)](http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/collect/Iterators.html#concat%28java.util.Iterator...%29)
+method. But in this case multiple select queries will be executed simultaneously, but their results will be
+fetched in series. This behaviour may be not desirable.
+
+To implement the same logic, but with proper serial queries execution, you may generate additional methods that return
+"passive" `CloseableIterable`s that will execute actual database query only after client call to `iterator()` method.
+These iterables may also be used to open multiple iterators executing database query another time for each iterator.
+
+Configuration:
+
+    <configuration>
+        <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
+        <useIterableJdbcTemplate>true</useIterableJdbcTemplate>
+        <generateInterfacesForColumns>true</generateInterfacesForColumns>
+    </configuration>
+
+Additional generated method:
+
+    <T> CloseableIterable<T> selectFooTemplateIterable(SelectFoo$Params paramsBean, RowMapper<T> mapper, Object... substitutions)
+
+
+Usage example with guava and query template substitutions:
+
+Template query in SQL file:
+
+    /** selectFooTemplate */
+    select * from foo_${postfix}
+        where bar1 = :bar1_int
+        and bar1 = :bar2_string
+
+Usage:
+
+    List<CloseableIterable<Foo>> iters = new ArrayList<CloseableIterable<Foo>>();
+    try {
+        for(String postfix : getMyPostfixes()) {
+            iters.add(qrs.selectFooTemplateIterable(params, mapper, "postfix", postfix))
+            Iterable<Foo> united = Iterables.concat(iters);
+            // use united results iterable as a result of "union all" query
+            for(Foo foo : united) {
+                ...
+            }
+        }
+    } finally {
+        for(CloseableIterable<Foo> ci : iters) {
+            IOUtils.closeQuietly(ci);
+        }
+    }
 
 ###Updates with checks
 
@@ -377,6 +431,12 @@ This project is released under the [Apache License 2.0](http://www.apache.org/li
 
 Changelog
 ---------
+
+**1.4** (2013-05-22)
+
+ * for iterable extension `*Iter` methods are renamed to `*Iterator` ones
+ * `CloseableIterable` methods
+ * javadoc fixes in generated class
 
 **1.3.2** (2013-05-22)
 

@@ -17,6 +17,7 @@ public class RootTemplateArg {
     private final String className;
     private final String modifier;
     private final boolean useIterableJdbcTemplate;
+    private final boolean useCloseableIterables;
     private final boolean useCheckSingleRowUpdates;
     private final boolean useBatchInserts;
     private final boolean useTemplateStringSubstitution;
@@ -34,12 +35,13 @@ public class RootTemplateArg {
      * @param className generated class name
      * @param modifier class and methods modifier, may be 'public', empty (package-private) by default
      * @param useIterableJdbcTemplate whether to use JdbcTemplate extension from this project
-*                                (https://github.com/alexkasko/springjdbc-iterable)
+     *                                (https://github.com/alexkasko/springjdbc-iterable)
+     * @param useCloseableIterables whether to generate {@code CloseableIterable} methods
      * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
-*                                 only single row was changed on update
+     *                                 only single row was changed on update
      * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
-*                        takes {@link java.util.Iterator} of parameters and execute inserts
-*                        for the contents of the specified iterator in batch mode
+     *                        takes {@link java.util.Iterator} of parameters and execute inserts
+     *                        for the contents of the specified iterator in batch mode
      * @param useTemplateStringSubstitution whether to recognize query templates on method generation
      * @param useUnderscoredToCamel whether to convert underscored parameter named to camel ones
      * @param generateInterfacesForColumns whether to generate interfaces for columns
@@ -49,12 +51,13 @@ public class RootTemplateArg {
      * @param updates list of 'update' queries
      */
     RootTemplateArg(String packageName, String className, String modifier, boolean useIterableJdbcTemplate,
-                    boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, boolean useUnderscoredToCamel, boolean generateInterfacesForColumns, String sourceSqlFileName,
+                    boolean useCloseableIterables, boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, boolean useUnderscoredToCamel, boolean generateInterfacesForColumns, String sourceSqlFileName,
                     String templateValueConstraintRegex, Collection<QueryTemplateArg> selects, Collection<QueryTemplateArg> updates) {
         this.packageName = packageName;
         this.className = className;
         this.modifier = modifier;
         this.useIterableJdbcTemplate = useIterableJdbcTemplate;
+        this.useCloseableIterables = useCloseableIterables;
         this.useCheckSingleRowUpdates = useCheckSingleRowUpdates;
         this.useBatchInserts = useBatchInserts;
         this.useTemplateStringSubstitution = useTemplateStringSubstitution;
@@ -100,6 +103,15 @@ public class RootTemplateArg {
      */
     public boolean isUseIterableJdbcTemplate() {
         return useIterableJdbcTemplate;
+    }
+
+    /**
+     * Whether to generate {@code CloseableIterable} methods
+     *
+     * @return whether to generate {@code CloseableIterable} methods
+     */
+    public boolean isUseCloseableIterables() {
+        return useCloseableIterables;
     }
 
     /**
@@ -200,6 +212,7 @@ public class RootTemplateArg {
         sb.append(", className='").append(className).append('\'');
         sb.append(", modifier='").append(modifier).append('\'');
         sb.append(", useIterableJdbcTemplate=").append(useIterableJdbcTemplate);
+        sb.append(", useCloseableIterables=").append(useCloseableIterables);
         sb.append(", useCheckSingleRowUpdates=").append(useCheckSingleRowUpdates);
         sb.append(", useBatchInserts=").append(useBatchInserts);
         sb.append(", useTemplateStringSubstitution=").append(useTemplateStringSubstitution);
