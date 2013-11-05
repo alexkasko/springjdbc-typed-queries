@@ -40,7 +40,7 @@ Maven configuration (you may use multiple `execution` sections to process multip
             <plugin>
                 <groupId>com.alexkasko.springjdbc.typedqueries</groupId>
                 <artifactId>typed-queries-maven-plugin</artifactId>
-                <version>1.4</version>
+                <version>1.4.1</version>
                 <configuration>
                     <queriesFile>src/main/resources/com.myapp.foo.Foo$Queries.sql</queriesFile>
                 </configuration>
@@ -432,6 +432,10 @@ This project is released under the [Apache License 2.0](http://www.apache.org/li
 
 Changelog
 ---------
+
+**1.4.1** (2013-10-05)
+
+ * fluent setters support for column interfaces
 
 **1.4** (2013-05-22)
 

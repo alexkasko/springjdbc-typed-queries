@@ -42,6 +42,7 @@ public class CodeGenerator {
     private final boolean useTemplateStringSubstitution;
     private final boolean useUnderscoredToCamel;
     private final boolean generateInterfacesForColumns;
+    private final boolean useFluentSettersForColumns;
     private final Pattern selectRegex;
     private final Pattern updateRegex;
     private final Pattern templateRegex;
@@ -57,19 +58,20 @@ public class CodeGenerator {
      * @param isPublic whether generated class and its methods will have 'public' access modifier
      * @param useIterableJdbcTemplate whether to use iterable jdbc template extensions from this
      *                                project (https://github.com/alexkasko/springjdbc-iterable)
+     * @param useCloseableIterables whether to generate {@code CloseableIterable} methods
      * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
-     *                                 only single row was changed on update
+*                                 only single row was changed on update
      * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
-     *                        takes {@link java.util.Iterator} of parameters and execute inserts
-     *                        for the contents of the specified iterator in batch mode
+*                        takes {@link java.util.Iterator} of parameters and execute inserts
+*                        for the contents of the specified iterator in batch mode
      * @param useTemplateStringSubstitution whether to recognize query templates on method generation
      * @param selectRegex regular expression to use for identifying 'select' queries by name
      * @param updateRegex regular expression to use for identifying 'insert', 'update' and 'delete' queries by name
      * @param templateRegex regular expression to recognize query templates by name
      * @param templateValueConstraintRegex regular expression constraint for template substitution values
-     * @param useCloseableIterables whether to generate {@code CloseableIterable} methods
      * @param useUnderscoredToCamel whether to convert underscored parameter named to camel ones
      * @param generateInterfacesForColumns whether to generate interfaces for columns
+     * @param useFluentSettersForColumns whether to use fluent setters for columns
      * @param typeIdMap mapping of parameter names postfixes to data types
      * @param freemarkerTemplate freemarker template body
      * @param freemarkerConf freemarker configuration    @throws CodeGeneratorException on any error
@@ -79,7 +81,7 @@ public class CodeGenerator {
                          boolean useTemplateStringSubstitution, String selectRegex,
                          String updateRegex, String templateRegex, String templateValueConstraintRegex,
                          boolean useUnderscoredToCamel, boolean generateInterfacesForColumns,
-                         Map<String, Class<?>> typeIdMap, String freemarkerTemplate,
+                         boolean useFluentSettersForColumns, Map<String, Class<?>> typeIdMap, String freemarkerTemplate,
                          Configuration freemarkerConf) throws CodeGeneratorException {
         if(null == selectRegex) throw new CodeGeneratorException("Provided selectRegex is null");
         if(null == updateRegex) throw new CodeGeneratorException("Provided updateRegex is null");
@@ -96,6 +98,7 @@ public class CodeGenerator {
         this.useTemplateStringSubstitution = useTemplateStringSubstitution;
         this.useUnderscoredToCamel = useUnderscoredToCamel;
         this.generateInterfacesForColumns = generateInterfacesForColumns;
+        this.useFluentSettersForColumns = useFluentSettersForColumns;
         this.selectRegex = Pattern.compile(selectRegex);
         this.updateRegex = Pattern.compile(updateRegex);
         this.templateRegex = Pattern.compile(templateRegex);
@@ -158,7 +161,7 @@ public class CodeGenerator {
                         "[" + selectRegex + "] or updateRegex: [" + updateRegex + "]");
         }
         return new RootTemplateArg(packageName, className, modifier, useIterableJdbcTemplate, useCloseableIterables, useCheckSingleRowUpdates,
-                useBatchInserts, useTemplateStringSubstitution, useUnderscoredToCamel, generateInterfacesForColumns, sourceSqlFileName, templateValueConstraintRegex.pattern(),
+                useBatchInserts, useTemplateStringSubstitution, useUnderscoredToCamel, generateInterfacesForColumns, useFluentSettersForColumns, sourceSqlFileName, templateValueConstraintRegex.pattern(),
                 selects, updates);
     }
 
@@ -303,6 +306,7 @@ public class CodeGenerator {
         private boolean useTemplateStringSubstitution = false;
         private boolean useUnderscoredToCamel = true;
         private boolean generateInterfacesForColumns = false;
+        private boolean useFluentSettersForColumns = false;
         private String selectRegex = "^select[a-zA-Z][a-zA-Z0-9_$]*$";
         private String updateRegex = "^(?:insert|update|delete|create|drop)[a-zA-Z][a-zA-Z0-9_$]*$";
         private String templateRegex = "^[a-zA-Z0-9_$]*Template$";
@@ -398,6 +402,15 @@ public class CodeGenerator {
          */
         public void setGenerateInterfacesForColumns(boolean generateInterfacesForColumns) {
             this.generateInterfacesForColumns = generateInterfacesForColumns;
+        }
+
+        /**
+         * Whether to use fluent setters for columns
+         *
+         * @param useFluentSettersForColumns whether to use fluent setters for columns
+         */
+        public void setUseFluentSettersForColumns(boolean useFluentSettersForColumns) {
+            this.useFluentSettersForColumns = useFluentSettersForColumns;
         }
 
         /**
@@ -544,7 +557,7 @@ public class CodeGenerator {
         public CodeGenerator build() {
             return new CodeGenerator(isPublic, useIterableJdbcTemplate, useCloseableIterables, useCheckSingleRowUpdates,
                     useBatchInserts, useTemplateStringSubstitution, selectRegex, updateRegex, templateRegex,
-                    templateValueConstraintRegex, useUnderscoredToCamel, generateInterfacesForColumns, typeIdMap,
+                    templateValueConstraintRegex, useUnderscoredToCamel, generateInterfacesForColumns, useFluentSettersForColumns, typeIdMap,
                     freemarkerTemplate, freemarkerConf);
         }
 

@@ -136,13 +136,14 @@ ${modifier}class ${className} {
 
     // ${query.name} methods
 [#if generateInterfacesForColumns && query.columns?size > 1]
+    [#if useFluentSettersForColumns][#assign columnSetterReturnVal="Object"][#else][#assign columnSetterReturnVal="void"][/#if]
 
     /**
      * Interface for "${query.name}" result columns
      */
     ${modifier}interface ${query.name?cap_first}$Columns {
 [#list query.columns as col]
-        void set${col.name?cap_first}(${col.type} ${col.name});
+        ${columnSetterReturnVal} set${col.name?cap_first}(${col.type} ${col.name});
 [/#list]
     }
 [/#if]

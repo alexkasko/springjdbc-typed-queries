@@ -23,6 +23,7 @@ public class RootTemplateArg {
     private final boolean useTemplateStringSubstitution;
     private final boolean useUnderscoredToCamel;
     private final boolean generateInterfacesForColumns;
+    private final boolean useFluentSettersForColumns;
     private final String sourceSqlFileName;
     private final String templateValueConstraintRegex;
     private final Collection<QueryTemplateArg> selects;
@@ -35,23 +36,24 @@ public class RootTemplateArg {
      * @param className generated class name
      * @param modifier class and methods modifier, may be 'public', empty (package-private) by default
      * @param useIterableJdbcTemplate whether to use JdbcTemplate extension from this project
-     *                                (https://github.com/alexkasko/springjdbc-iterable)
+*                                (https://github.com/alexkasko/springjdbc-iterable)
      * @param useCloseableIterables whether to generate {@code CloseableIterable} methods
      * @param useCheckSingleRowUpdates whether to generate additional update methods, those check that
-     *                                 only single row was changed on update
+*                                 only single row was changed on update
      * @param useBatchInserts whether to generate additional insert (DML) methods (with parameters), those
-     *                        takes {@link java.util.Iterator} of parameters and execute inserts
-     *                        for the contents of the specified iterator in batch mode
+*                        takes {@link java.util.Iterator} of parameters and execute inserts
+*                        for the contents of the specified iterator in batch mode
      * @param useTemplateStringSubstitution whether to recognize query templates on method generation
      * @param useUnderscoredToCamel whether to convert underscored parameter named to camel ones
      * @param generateInterfacesForColumns whether to generate interfaces for columns
+     * @param useFluentSettersForColumns whether to use fluent setters for columns
      * @param sourceSqlFileName name of source SQL file
      * @param templateValueConstraintRegex regular expression constraint for template substitution values
      * @param selects list of 'select' queries
      * @param updates list of 'update' queries
      */
     RootTemplateArg(String packageName, String className, String modifier, boolean useIterableJdbcTemplate,
-                    boolean useCloseableIterables, boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, boolean useUnderscoredToCamel, boolean generateInterfacesForColumns, String sourceSqlFileName,
+                    boolean useCloseableIterables, boolean useCheckSingleRowUpdates, boolean useBatchInserts, boolean useTemplateStringSubstitution, boolean useUnderscoredToCamel, boolean generateInterfacesForColumns, boolean useFluentSettersForColumns, String sourceSqlFileName,
                     String templateValueConstraintRegex, Collection<QueryTemplateArg> selects, Collection<QueryTemplateArg> updates) {
         this.packageName = packageName;
         this.className = className;
@@ -63,6 +65,7 @@ public class RootTemplateArg {
         this.useTemplateStringSubstitution = useTemplateStringSubstitution;
         this.useUnderscoredToCamel = useUnderscoredToCamel;
         this.generateInterfacesForColumns = generateInterfacesForColumns;
+        this.useFluentSettersForColumns = useFluentSettersForColumns;
         this.sourceSqlFileName = sourceSqlFileName;
         this.templateValueConstraintRegex = templateValueConstraintRegex;
         this.selects = selects;
@@ -154,6 +157,15 @@ public class RootTemplateArg {
      */
     public boolean isGenerateInterfacesForColumns() {
         return generateInterfacesForColumns;
+    }
+
+    /**
+     * Whether to use fluent setters for columns
+     *
+     * @return whether to use fluent setters for columns
+     */
+    public boolean isUseFluentSettersForColumns() {
+        return useFluentSettersForColumns;
     }
 
     /**

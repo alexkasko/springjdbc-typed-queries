@@ -112,13 +112,18 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
      * @parameter expression="${typedqueries.useUnderscoredToCamel}" default-value="true"
      */
     private boolean useUnderscoredToCamel;
-
     /**
      * Whether to generate interfaces for columns, false by default
      *
      * @parameter expression="${typedqueries.generateInterfacesForColumns}"
      */
     private boolean generateInterfacesForColumns;
+    /**
+     * Whether to use fluent setters for columns, false by default
+     *
+     * @parameter expression="${typedqueries.useFluentSettersForColumns}"
+     */
+    private boolean useFluentSettersForColumns;
     /**
      * Regular expression to use for identifying 'select' queries by name,
      * default: '^select[a-zA-Z][a-zA-Z0-9_$]*$'
@@ -196,6 +201,7 @@ public class GenerateBeanQueriesMojo extends AbstractMojo {
             if(useTemplateStringSubstitution) builder.setUseTemplateStringSubstitution(true);
             if(!useUnderscoredToCamel) builder.setUseUnderscoredToCamel(false);
             if(generateInterfacesForColumns) builder.setGenerateInterfacesForColumns(true);
+            if(useFluentSettersForColumns) builder.setUseFluentSettersForColumns(true);
             if(null != selectRegex) builder.setSelectRegex(selectRegex);
             if(null != updateRegex) builder.setUpdateRegex(updateRegex);
             if(null != templateRegex) builder.setTemplateRegex(templateRegex);
