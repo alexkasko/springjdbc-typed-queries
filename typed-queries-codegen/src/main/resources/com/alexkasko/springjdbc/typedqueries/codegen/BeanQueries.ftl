@@ -141,7 +141,7 @@ ${modifier}class ${className} {
     /**
      * Interface for "${query.name}" result columns
      */
-    ${modifier}interface ${query.name?cap_first}$Columns {
+    ${modifier}interface ${query.name?cap_first}Columns {
 [#list query.columns as col]
         ${columnSetterReturnVal} set${col.name?cap_first}(${col.type} ${col.name});
 [/#list]
@@ -152,7 +152,7 @@ ${modifier}class ${className} {
     /**
      * Interface for "${query.name}" query parameters
      */
-    ${modifier}interface ${query.name?cap_first}$Params {
+    ${modifier}interface ${query.name?cap_first}Params {
 [#list query.params as param]
         ${param.type} get${param.name?cap_first}();
 [/#list]
@@ -167,7 +167,7 @@ ${modifier}class ${className} {
      * @return list of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> List<T> ${query.name}(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<T> List<T> ${query.name}(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -187,7 +187,7 @@ ${modifier}class ${className} {
      * @throws IncorrectResultSizeDataAccessException if not one row returned
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> T ${query.name}Single(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<T> T ${query.name}Single(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -206,7 +206,7 @@ ${modifier}class ${className} {
      * @return iterator of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> CloseableIterator<T> ${query.name}Iterator(${query.name?cap_first}$Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<T> CloseableIterator<T> ${query.name}Iterator(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -224,7 +224,7 @@ ${modifier}class ${className} {
      * @param <T> row mapper return type
      * @return closeable iterable for "${query.name}" query
      */
-    ${modifier}<T> CloseableIterable<T> ${query.name}Iterable(final ${query.name?cap_first}$Params paramsBean, final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
+    ${modifier}<T> CloseableIterable<T> ${query.name}Iterable(final ${query.name?cap_first}Params paramsBean, final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
         return new CloseableIterable<T>() {
             @Override
             protected CloseableIterator<T> closeableIterator() {
@@ -408,7 +408,7 @@ ${modifier}class ${className} {
     /**
      * Interface for "${query.name}" query parameters
      */
-    ${modifier}interface ${query.name?cap_first}$Params {
+    ${modifier}interface ${query.name?cap_first}Params {
 [#list query.params as param]
         ${param.type} get${param.name?cap_first}();
 [/#list]
@@ -421,7 +421,7 @@ ${modifier}class ${className} {
      * @return count of updated rows
      * @throws DataAccessException on query error
      */
-    ${modifier}int ${query.name}(${query.name?cap_first}$Params paramsBean[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}int ${query.name}(${query.name?cap_first}Params paramsBean[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -438,7 +438,7 @@ ${modifier}class ${className} {
      * @throws IncorrectResultSizeDataAccessException if not one row was updated
      * @throws DataAccessException on query error
      */
-    ${modifier}void ${query.name}Single(${query.name?cap_first}$Params paramsBean[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}void ${query.name}Single(${query.name?cap_first}Params paramsBean[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -458,7 +458,7 @@ ${modifier}class ${className} {
      * @return count of updated rows
      * @throws DataAccessException on query error
      */
-    ${modifier}int ${query.name}Batch(Iterator<? extends ${query.name?cap_first}$Params> paramsIter, int batchSize[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}int ${query.name}Batch(Iterator<? extends ${query.name?cap_first}Params> paramsIter, int batchSize[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         if(batchSize <= 0) throw new QueryException("Provided batchSize must be positive: [" + batchSize + "]");
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsIter);
 [#if query.template]
@@ -517,7 +517,7 @@ ${modifier}class ${className} {
     /**
      * Interface for "${query.name}" query parameters
      */
-    ${modifier}interface ${query.name?cap_first}$Params {
+    ${modifier}interface ${query.name?cap_first}Params {
 [#list query.params as param]
         ${param.type} get${param.name?cap_first}();
 [/#list]
@@ -531,7 +531,7 @@ ${modifier}class ${className} {
      * @return count of updated rows
      * @throws DataAccessException on query error
      */
-    ${modifier}int ${query.name}Batch(Iterator<? extends ${query.name?cap_first}$Params> paramsIter, int batchSize[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}int ${query.name}Batch(Iterator<? extends ${query.name?cap_first}Params> paramsIter, int batchSize[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         if(batchSize <= 0) throw new QueryException("Provided batchSize must be positive: [" + batchSize + "]");
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsIter);
 [#if query.template]
