@@ -433,6 +433,10 @@ This project is released under the [Apache License 2.0](http://www.apache.org/li
 Changelog
 ---------
 
+**1.4.3** (2013-10-16)
+
+ * require `RowMapper`s to correspond to column interfaces
+
 **1.4.2** (2013-10-09)
 
  * remove `$` from generated interfaces names

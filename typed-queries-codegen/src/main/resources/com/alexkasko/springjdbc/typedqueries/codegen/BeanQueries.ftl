@@ -137,6 +137,7 @@ ${modifier}class ${className} {
     // ${query.name} methods
 [#if generateInterfacesForColumns && query.columns?size > 1]
     [#if useFluentSettersForColumns][#assign columnSetterReturnVal="Object"][#else][#assign columnSetterReturnVal="void"][/#if]
+    [#assign rowMapperGenericParam="T extends " + query.name?cap_first + "Columns"]
 
     /**
      * Interface for "${query.name}" result columns
@@ -146,6 +147,8 @@ ${modifier}class ${className} {
         ${columnSetterReturnVal} set${col.name?cap_first}(${col.type} ${col.name});
 [/#list]
     }
+[#else]
+    [#assign rowMapperGenericParam="T"]
 [/#if]
 [#if query.params?size > 1]
 
@@ -167,7 +170,7 @@ ${modifier}class ${className} {
      * @return list of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> List<T> ${query.name}(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> List<T> ${query.name}(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -187,7 +190,7 @@ ${modifier}class ${className} {
      * @throws IncorrectResultSizeDataAccessException if not one row returned
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> T ${query.name}Single(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> T ${query.name}Single(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -206,7 +209,7 @@ ${modifier}class ${className} {
      * @return iterator of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> CloseableIterator<T> ${query.name}Iterator(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> CloseableIterator<T> ${query.name}Iterator(${query.name?cap_first}Params paramsBean, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", paramsBean, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -224,7 +227,7 @@ ${modifier}class ${className} {
      * @param <T> row mapper return type
      * @return closeable iterable for "${query.name}" query
      */
-    ${modifier}<T> CloseableIterable<T> ${query.name}Iterable(final ${query.name?cap_first}Params paramsBean, final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
+    ${modifier}<${rowMapperGenericParam}> CloseableIterable<T> ${query.name}Iterable(final ${query.name?cap_first}Params paramsBean, final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
         return new CloseableIterable<T>() {
             @Override
             protected CloseableIterator<T> closeableIterator() {
@@ -246,7 +249,7 @@ ${modifier}class ${className} {
      * @return list of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> List<T> ${query.name}(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> List<T> ${query.name}(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name}, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -270,7 +273,7 @@ ${modifier}class ${className} {
      * @throws IncorrectResultSizeDataAccessException if not one row returned
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> T ${query.name}Single(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> T ${query.name}Single(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name}, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -293,7 +296,7 @@ ${modifier}class ${className} {
      * @return iterator of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> CloseableIterator<T> ${query.name}Iterator(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> CloseableIterator<T> ${query.name}Iterator(${singlpar.type} ${singlpar.name}, RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", ${singlpar.name}, mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -315,7 +318,7 @@ ${modifier}class ${className} {
      * @param <T> row mapper return type
      * @return closeable iterable for "${query.name}" query
      */
-    ${modifier}<T> CloseableIterable<T> ${query.name}Iterable(final ${singlpar.type} ${singlpar.name}, final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
+    ${modifier}<${rowMapperGenericParam}> CloseableIterable<T> ${query.name}Iterable(final ${singlpar.type} ${singlpar.name}, final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
         return new CloseableIterable<T>() {
             @Override
             protected CloseableIterator<T> closeableIterator() {
@@ -335,7 +338,7 @@ ${modifier}class ${className} {
      * @return list of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> List<T> ${query.name}(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> List<T> ${query.name}(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "", mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -353,7 +356,7 @@ ${modifier}class ${className} {
      * @throws IncorrectResultSizeDataAccessException if not one row returned
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> T ${query.name}Single(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> T ${query.name}Single(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "", mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -370,7 +373,7 @@ ${modifier}class ${className} {
      * @return iterator of mapped objects
      * @throws DataAccessException on query error
      */
-    ${modifier}<T> CloseableIterator<T> ${query.name}Iterator(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
+    ${modifier}<${rowMapperGenericParam}> CloseableIterator<T> ${query.name}Iterator(RowMapper<T> mapper[#if query.template], Object... substitutions[/#if]) throws DataAccessException {
         String sql[#if query.template]Template[/#if] = checkAndGetSql("${query.name}", "", mapper);
 [#if query.template]
         String sql = substitute(sqlTemplate, substitutions);
@@ -386,7 +389,7 @@ ${modifier}class ${className} {
      * @param <T> row mapper return type
      * @return closeable iterable for "${query.name}" query
      */
-    ${modifier}<T> CloseableIterable<T> ${query.name}Iterable(final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
+    ${modifier}<${rowMapperGenericParam}> CloseableIterable<T> ${query.name}Iterable(final RowMapper<T> mapper[#if query.template], final Object... substitutions[/#if]) {
         return new CloseableIterable<T>() {
             @Override
             protected CloseableIterator<T> closeableIterator() {
